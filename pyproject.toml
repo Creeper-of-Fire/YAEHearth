@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "liliths-throne-tui"
+version = "0.1.0"
+description = "暮色酒馆 — TUI 对话原型"
+requires-python = ">=3.10"
+dependencies = [
+    "textual>=0.47",
+    "litellm>=1.0",
+    "python-dotenv>=1.0",
+]
+
+[project.scripts]
+liliths-throne-tui = "liliths_throne_tui.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
