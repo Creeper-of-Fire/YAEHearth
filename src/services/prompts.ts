@@ -2,18 +2,53 @@ import {computed, type ComputedRef, shallowRef, triggerRef} from 'vue'
 import type {Character} from '@/types/game'
 
 /* ------------------------------------------------------------------ */
-/* 静态系统提示                                                        */
+/* 工作模式                                                            */
 /* ------------------------------------------------------------------ */
 
-export const SYSTEM_PROMPT = `你是一个角色扮演 AI。你的任务是根据场景和角色设定，自然地演绎角色对话。
+export type WorkMode = 'dialogue' | 'mood'
 
-## 写作规则
-- 只输出角色说的话，不要加任何格式、标签、前缀、方括号、引号
+const WORK_MODE_LABELS: Record<WorkMode, string> = {
+    dialogue: '对话演绎',
+    mood: '情绪分析',
+}
+
+export function buildModeIndicator(mode: WorkMode): string
+{
+    return `[工作模式: ${WORK_MODE_LABELS[mode]}]`
+}
+
+/* ------------------------------------------------------------------ */
+/* 系统提示 — 多模式统一（缓存核心）                                    */
+/* ------------------------------------------------------------------ */
+
+export const SYSTEM_PROMPT = `你是一个角色扮演引擎，能够以多种工作模式运行。
+
+# 工作模式
+
+在非对话模式下，每轮交互会通过 [工作模式: xxx] 标记指定当前激活的模式。严格遵循该模式的规则和输出格式。
+
+## 对话演绎
+
+如果用户未提及工作模式，则默认为对话演绎模式。
+在对话演绎模式下，你根据场景和角色设定，自然地演绎角色对话。
+
+规则：
+- 只输出角色说的话，不加任何格式、标签、前缀、方括号、引号
 - 保持角色的性格和说话方式
-- 对话要自然、生动，有角色个性
-- 不要替玩家说话
-- 不要使用 markdown 格式
-- 如果其他角色有合理的插话理由，可以在对话中自然提及他们`
+- 对话自然、生动，有角色个性
+- 不替玩家说话
+- 不使用 markdown 格式
+- 其他角色有合理理由时可在对话中自然提及
+
+## 情绪分析
+
+在情绪分析模式下，你评估目标角色在对话中的心理状态变化。
+
+规则：
+- 只返回 JSON，不包含任何其他文字
+- 格式：{"mood": "2-4个中文词描述心情", "affection_delta": 整数}
+- mood：用2-4个中文词描述角色当前心情
+- affection_delta：好感度变化量，范围 -1 到 1（-1 降低、0 不变、1 升高）`
 
 /* ------------------------------------------------------------------ */
 /* ContextEntry — 判别联合                                             */
@@ -137,16 +172,12 @@ export function buildDialogueDynamic(
     allCharacters: Character[]
 ): Array<{ role: 'system' | 'user'; content: string }>
 {
-    const targetName = target.name
-    const targetMood = target.mood
-    const targetAffection = target.affection
+    const messages: Array<{ role: 'system' | 'user'; content: string }> = []
 
     const others = allCharacters
         .filter(c => c.id !== target.id)
         .map(c => `- ${c.name}（${c.role}）：心情 ${c.mood}`)
         .join('\n')
-
-    const messages: Array<{ role: 'system' | 'user'; content: string }> = []
 
     if (others)
     {
@@ -159,11 +190,11 @@ export function buildDialogueDynamic(
     messages.push(
         {
             role: 'user',
-            content: `你正在扮演「${targetName}」进行对话。`,
+            content: `你正在扮演「${target.name}」进行对话。`,
         },
         {
             role: 'user',
-            content: `## 当前状态：${targetName}\n心情：${targetMood}\n好感度：${targetAffection}/5`,
+            content: `## 当前状态：${target.name}\n心情：${target.mood}\n好感度：${target.affection}/5`,
         },
     )
 
@@ -172,13 +203,8 @@ export function buildDialogueDynamic(
 
 /* ------------------------------------------------------------------ */
 /* 动态部分 — 情绪分析                                                 */
+
 /* ------------------------------------------------------------------ */
-
-const MOOD_SYSTEM = `你是一个情绪分析器。根据以下对话，评估目标角色的心情和好感度变化。
-只返回 JSON，不要包含任何其他文字：
-{"mood": "2-4个中文词描述心情", "affection_delta": -1到1之间的整数}`
-
-export {MOOD_SYSTEM}
 
 export function buildMoodDynamic(
     target: Character,
@@ -188,11 +214,7 @@ export function buildMoodDynamic(
     return [
         {
             role: 'user',
-            content: `角色：${target.name}（${target.role}），当前心情：${target.mood}，好感度：${target.affection}/5\n\n${target.name}刚刚说：「${newDialogue}」`,
-        },
-        {
-            role: 'user',
-            content: `[模式切换] 忽略之前的角色扮演指令。\n\n${MOOD_SYSTEM}`,
+            content: `${target.name}刚刚说：「${newDialogue}」\n\n**${buildModeIndicator('mood')}**`,
         },
     ]
 }
