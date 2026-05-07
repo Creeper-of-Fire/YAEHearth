@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 
 export interface LogEntry {
-  level: 'info' | 'warn' | 'error'
+  level: 'debug' | 'info' | 'warn' | 'error'
   message: string
   time: string
 }
@@ -21,6 +21,8 @@ function add(level: LogEntry['level'], message: string) {
     console.error(`[tavern] ${message}`)
   } else if (level === 'warn') {
     console.warn(`[tavern] ${message}`)
+  } else if (level === 'debug') {
+    console.debug(`[tavern] ${message}`)
   } else {
     console.info(`[tavern] ${message}`)
   }
@@ -30,6 +32,7 @@ export function useLogStore() {
   return {
     entries,
     info: (msg: string) => add('info', msg),
+    debug: (msg: string) => add('debug', msg),
     warn: (msg: string) => add('warn', msg),
     error: (msg: string) => add('error', msg),
   }

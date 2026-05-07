@@ -7,7 +7,7 @@ const inputText = ref('')
 const logContainer = ref<HTMLElement | null>(null)
 
 watch(
-  () => store.dialogueHistory.length,
+  () => store.displayMessages.length,
   () => {
     nextTick(() => {
       if (logContainer.value) {
@@ -27,31 +27,27 @@ function send() {
 
 <template>
   <div class="scene-panel">
-    <div class="scene-desc">
-      {{ store.sceneDescription }}
-    </div>
     <div ref="logContainer" class="dialogue-log">
       <div
-        v-for="(msg, i) in store.dialogueHistory"
+        v-for="(msg, i) in store.displayMessages"
         :key="i"
         class="message"
-        :class="{
-          'msg-narrator': !msg.speaker,
-          'msg-player': msg.speaker === '玩家',
-          'msg-npc': msg.speaker && msg.speaker !== '玩家',
-        }"
+        :class="`msg-${msg.type}`"
       >
-        <template v-if="!msg.speaker">
-          {{ msg.text }}
+        <template v-if="msg.type === 'scene'">
+          <div class="content-block">{{ msg.text }}</div>
         </template>
-        <template v-else-if="msg.speaker === '玩家'">
+        <template v-else-if="msg.type === 'char-card'">
+          <div class="content-block">{{ msg.text }}</div>
+        </template>
+        <template v-else-if="msg.type === 'player'">
           <span class="speaker-player">你:</span> {{ msg.text }}
         </template>
         <template v-else>
-          <span class="speaker-npc">{{ msg.speaker }}:</span> {{ msg.text }}
+          <span class="speaker-npc">{{ msg.name }}:</span> {{ msg.text }}
         </template>
       </div>
-      <div v-if="store.busy" class="message msg-system">
+      <div v-if="store.busy" class="message msg-thinking">
         <span class="thinking">正在思考...</span>
       </div>
     </div>
@@ -74,16 +70,6 @@ function send() {
   flex-direction: column;
 }
 
-.scene-desc {
-  padding: 12px 16px;
-  background: #19191a;
-  color: #999999;
-  font-style: italic;
-  font-size: 14px;
-  border-bottom: 1px solid #434347;
-  line-height: 1.5;
-}
-
 .dialogue-log {
   flex: 1;
   overflow-y: auto;
@@ -98,22 +84,36 @@ function send() {
   word-break: break-word;
 }
 
-.msg-narrator {
-  color: #999999;
+.msg-scene {
+  color: #777777;
   font-style: italic;
+  padding: 8px 12px;
+  border-left: 3px solid #444444;
+  margin: 12px 0;
+}
+
+.msg-char-card {
+  color: #aaaaaa;
+  padding: 8px 12px;
+  border-left: 3px solid #6699cc;
+  margin: 12px 0;
 }
 
 .msg-player {
   color: #dddddd;
 }
 
-.msg-npc {
+.msg-assistant {
   color: #dddddd;
 }
 
-.msg-system {
+.msg-thinking {
   color: #666666;
   font-style: italic;
+}
+
+.content-block {
+  white-space: pre-wrap;
 }
 
 .speaker-player {

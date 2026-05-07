@@ -8,26 +8,12 @@ export interface Character {
   affection: number
 }
 
-export interface Message {
-  speaker: string
-  text: string
-  timestamp: number
-}
-
 export interface SceneState {
   location: string
   timeOfDay: string
   atmosphere: string
   characters: Character[]
   selectedId: string | null
-  dialogueHistory: Message[]
-}
-
-export interface AgentResponse {
-  speaker: string
-  text: string
-  mood?: string | null
-  affectionDelta: number
 }
 
 export function defaultScene(): SceneState {
@@ -65,6 +51,5 @@ export function defaultScene(): SceneState {
       },
     ],
     selectedId: 'lila',
-    dialogueHistory: [],
   }
 }

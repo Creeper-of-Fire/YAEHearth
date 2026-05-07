@@ -79,6 +79,14 @@ function onSelect(key: string) {
   color: #888888;
 }
 
+.log-debug {
+  color: #558866;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: monospace;
+  font-size: 11px;
+}
+
 .log-warn {
   color: #ccaa44;
 }

@@ -7,3 +7,4 @@ _old_py/
 /repopack-output.txt
 .claude/
 .idea/
+*.d.ts

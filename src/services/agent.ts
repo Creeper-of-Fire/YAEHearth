@@ -1,11 +1,4 @@
 import OpenAI from 'openai'
-import type { AgentResponse, SceneState } from '@/types/game'
-import {
-  buildChatMessages,
-  buildDialoguePrompt,
-  buildMoodMessages,
-  MOOD_SYSTEM,
-} from '@/services/prompts'
 import { useLogStore } from '@/stores/log'
 
 const client = new OpenAI({
@@ -52,58 +45,51 @@ function parseMood(raw: string): { mood: string | null; affectionDelta: number }
   return { mood: null, affectionDelta: 0 }
 }
 
-export async function generateResponse(state: SceneState): Promise<AgentResponse> {
-  const log = useLogStore()
-  const target = state.characters.find(c => c.id === state.selectedId)
-  const speakerName = target?.name ?? '???'
+type ChatMsg = { role: string; content: string; name?: string }
 
-  // Step 1: 生成对话 — 纯文本
-  log.info(`Step 1: 生成对话 (model=${import.meta.env.VITE_MODEL})`)
+export async function generateDialogue(
+  staticMessages: ChatMsg[],
+  dynamicMessages: ChatMsg[],
+): Promise<string> {
+  const log = useLogStore()
+  const messages = [...staticMessages, ...dynamicMessages]
+  log.info(`Step 1: 生成对话 (model=${import.meta.env.VITE_MODEL}, messages=${messages.length})`)
+  log.debug('对话全量提示词:\n' + messages.map((m, i) => `[${i}] ${m.role}: ${m.content}`).join('\n'))
+
+  const resp = await client.chat.completions.create({
+    model: import.meta.env.VITE_MODEL,
+    messages: messages as OpenAI.ChatCompletionMessageParam[],
+    temperature: 0.8,
+    max_tokens: 512,
+  })
+
+  const text = stripThinkTags(resp.choices[0]?.message?.content?.trim() ?? '')
+  log.info(`LLM 对话响应: ${text.slice(0, 80)}`)
+  return text
+}
+
+export async function analyzeMood(
+  staticMessages: ChatMsg[],
+  moodMessages: ChatMsg[],
+): Promise<{ mood: string | null; affectionDelta: number }> {
+  const log = useLogStore()
+  const messages = [...staticMessages, ...moodMessages]
+  log.info(`Step 2: 更新情绪 (messages=${messages.length})`)
+  log.debug('情绪全量提示词:\n' + messages.map((m, i) => `[${i}] ${m.role}: ${m.content}`).join('\n'))
+
   try {
-    const dialoguePrompt = buildDialoguePrompt(state)
-    const chatMessages = buildChatMessages(state)
     const resp = await client.chat.completions.create({
       model: import.meta.env.VITE_MODEL,
-      messages: [
-        { role: 'system', content: dialoguePrompt },
-        ...chatMessages,
-      ],
-      temperature: 0.8,
-      max_tokens: 512,
+      messages: messages as OpenAI.ChatCompletionMessageParam[],
+      temperature: 0.3,
+      max_tokens: 100,
     })
-    let text = stripThinkTags(resp.choices[0]?.message?.content?.trim() ?? '')
-    log.info(`LLM 对话响应: ${text.slice(0, 80)}`)
 
-    if (!text) {
-      return { speaker: speakerName, text: '（沉默）', mood: null, affectionDelta: 0 }
-    }
-
-    // Step 2: 更新情绪 — 简短 JSON
-    log.info('Step 2: 更新情绪')
-    let mood: string | null = null
-    let affectionDelta = 0
-    try {
-      const moodResp = await client.chat.completions.create({
-        model: import.meta.env.VITE_MODEL,
-        messages: [
-          { role: 'system', content: MOOD_SYSTEM },
-          ...buildMoodMessages(state, text),
-        ],
-        temperature: 0.3,
-        max_tokens: 100,
-      })
-      const moodRaw = stripThinkTags(moodResp.choices[0]?.message?.content?.trim() ?? '')
-      log.info(`情绪响应: ${moodRaw.slice(0, 60)}`)
-      const parsed = parseMood(moodRaw)
-      mood = parsed.mood
-      affectionDelta = parsed.affectionDelta
-    } catch (e) {
-      log.warn(`情绪更新失败: ${e}`)
-    }
-
-    return { speaker: speakerName, text, mood, affectionDelta }
+    const raw = stripThinkTags(resp.choices[0]?.message?.content?.trim() ?? '')
+    log.info(`情绪响应: ${raw.slice(0, 60)}`)
+    return parseMood(raw)
   } catch (e) {
-    log.error(`Agent 调用失败: ${e}`)
-    return { speaker: speakerName, text: '（沉默）', mood: null, affectionDelta: 0 }
+    log.warn(`情绪更新失败: ${e}`)
+    return { mood: null, affectionDelta: 0 }
   }
 }
