@@ -1,5 +1,5 @@
-<script setup lang="ts">
-import type { Character } from '@/types/game'
+<script lang="ts" setup>
+import type {Character} from '@/types/game'
 
 defineProps<{ character: Character }>()
 </script>
@@ -9,29 +9,29 @@ defineProps<{ character: Character }>()
     <div class="attr-name">{{ character.name }}</div>
     <div class="attr-role">{{ character.role }}</div>
 
-    <div class="spacer" />
+    <div class="spacer"/>
 
     <div class="attr-label">描述</div>
     <div class="attr-text">{{ character.description }}</div>
 
-    <div class="spacer" />
+    <div class="spacer"/>
 
     <div class="attr-label">性格</div>
     <div class="attr-text">{{ character.personality }}</div>
 
-    <div class="spacer" />
+    <div class="spacer"/>
 
     <div class="attr-label">好感度</div>
     <div class="hearts">
       <span
-        v-for="i in 5"
-        :key="i"
-        class="heart"
-        :class="i <= character.affection ? 'heart-filled' : 'heart-empty'"
+          v-for="i in 5"
+          :key="i"
+          :class="i <= character.affection ? 'heart-filled' : 'heart-empty'"
+          class="heart"
       >{{ i <= character.affection ? '❤' : '♡' }}</span>
     </div>
 
-    <div class="spacer" />
+    <div class="spacer"/>
 
     <div class="attr-label">心情</div>
     <div class="attr-text">{{ character.mood }}</div>

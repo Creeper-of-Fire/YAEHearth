@@ -1,22 +1,23 @@
-<script setup lang="ts">
-import { computed } from 'vue'
-import { useGameStore } from '@/stores/game'
-import { usePanelParams } from '@/viewer/usePanelParams'
-import { usePanelStore } from '@/stores/panel'
+<script lang="ts" setup>
+import {computed} from 'vue'
+import {useGameStore} from '@/stores/game'
+import {usePanelParams} from '@/viewer/usePanelParams'
+import {usePanelStore} from '@/stores/panel'
 import AttributePanel from '@/components/AttributePanel.vue'
 
-const { params, navigate } = usePanelParams()
+const {params, navigate} = usePanelParams()
 const panelStore = usePanelStore()
 const store = useGameStore()
 
 const characterId = computed(() => params.value.characterId)
 const character = computed(() =>
-  store.characters.find(c => c.id === characterId.value) ?? null,
+    store.characters.find(c => c.id === characterId.value) ?? null,
 )
 
-function startDialogue() {
-  navigate('dialogue', { characterId: characterId.value })
-  panelStore.navigate('right', 'char-attrs', { characterId: characterId.value })
+function startDialogue()
+{
+  navigate('dialogue', {characterId: characterId.value})
+  panelStore.navigate('right', 'char-attrs', {characterId: characterId.value})
 }
 </script>
 
@@ -27,8 +28,8 @@ function startDialogue() {
     </div>
     <div class="detail-body">
       <template v-if="character">
-        <AttributePanel :character="character" />
-        <div class="spacer" />
+        <AttributePanel :character="character"/>
+        <div class="spacer"/>
         <n-button type="primary" @click="startDialogue">
           开始对话
         </n-button>

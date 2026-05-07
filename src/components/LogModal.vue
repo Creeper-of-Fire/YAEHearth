@@ -1,6 +1,6 @@
-<script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useLogStore } from '@/stores/log'
+<script lang="ts" setup>
+import {computed, ref} from 'vue'
+import {useLogStore} from '@/stores/log'
 
 const log = useLogStore()
 const show = ref(false)
@@ -12,9 +12,9 @@ const recentLogs = computed(() => log.entries.value.slice(-50))
   <div class="log-trigger" @click="show = true">
     日志
   </div>
-  <n-modal v-model:show="show" preset="card" title="事件日志" style="max-width: 500px; max-height: 70vh;">
+  <n-modal v-model:show="show" preset="card" style="max-width: 500px; max-height: 70vh;" title="事件日志">
     <div class="log-content">
-      <div v-for="(entry, i) in recentLogs" :key="i" class="log-entry" :class="`log-${entry.level}`">
+      <div v-for="(entry, i) in recentLogs" :key="i" :class="`log-${entry.level}`" class="log-entry">
         <span class="log-time">{{ entry.time }}</span> {{ entry.message }}
       </div>
     </div>

@@ -1,6 +1,6 @@
-<script setup lang="ts">
-import { darkTheme } from 'naive-ui'
-import type { GlobalThemeOverrides } from 'naive-ui'
+<script lang="ts" setup>
+import type {GlobalThemeOverrides} from 'naive-ui'
+import {darkTheme} from 'naive-ui'
 import Viewer from '@/viewer/Viewer.vue'
 import LogModal from './components/LogModal.vue'
 
@@ -33,11 +33,11 @@ const themeOverrides: GlobalThemeOverrides = {
 <template>
   <n-config-provider :theme="darkTheme" :theme-overrides="themeOverrides">
     <div class="app-layout">
-      <Viewer panel="left" class="panel-left" />
-      <Viewer panel="center" class="panel-center" />
-      <Viewer panel="right" class="panel-right" />
+      <Viewer class="panel-left" panel="left"/>
+      <Viewer class="panel-center" panel="center"/>
+      <Viewer class="panel-right" panel="right"/>
     </div>
-    <LogModal />
+    <LogModal/>
   </n-config-provider>
 </template>
 
@@ -57,6 +57,7 @@ html, body, #app {
 .app-layout {
   display: grid;
   grid-template-columns: 280px 1fr 280px;
+  grid-template-rows: 1fr;
   height: 100vh;
   background: #1e1e20;
 }

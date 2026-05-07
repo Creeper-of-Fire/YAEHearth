@@ -1,95 +1,174 @@
 import OpenAI from 'openai'
-import { useLogStore } from '@/stores/log'
+import {useLogStore} from '@/stores/log'
 
 const client = new OpenAI({
-  apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY,
-  baseURL: import.meta.env.VITE_DEEPSEEK_API_BASE,
-  dangerouslyAllowBrowser: true,
+    apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY,
+    baseURL: import.meta.env.VITE_DEEPSEEK_API_BASE,
+    dangerouslyAllowBrowser: true,
 })
 
-function stripThinkTags(text: string): string {
-  return text
-    .replace(/<think[^>]*>[\s\S]*?<\/think\s*>/g, '')
-    .replace(/<thought>[\s\S]*?<\/thought>/g, '')
-    .trim()
+/* ------------------------------------------------------------------ */
+/* 共享工具                                                            */
+/* ------------------------------------------------------------------ */
+
+function stripThinkTags(text: string): string
+{
+    return text
+        .replace(/<think[^>]*>[\s\S]*?<\/think\s*>/g, '')
+        .replace(/<thought>[\s\S]*?<\/thought>/g, '')
+        .trim()
 }
 
-function parseMood(raw: string): { mood: string | null; affectionDelta: number } {
-  const cleaned = stripThinkTags(raw)
+export type ChatMsg = { role: string; content: string; name?: string }
 
-  try {
-    const data = JSON.parse(cleaned)
+/* ------------------------------------------------------------------ */
+/* DeepSeek usage 类型                                                 */
+/* ------------------------------------------------------------------ */
+
+interface DeepSeekUsage
+{
+    prompt_tokens: number
+    completion_tokens: number
+    total_tokens: number
+    prompt_cache_hit_tokens: number
+    prompt_cache_miss_tokens: number
+}
+
+export interface UsageSnapshot
+{
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+    cacheHitTokens: number
+    cacheMissTokens: number
+}
+
+function extractUsage(raw: Record<string, unknown> | undefined): UsageSnapshot | null
+{
+    if (!raw) return null
+    const u = raw as unknown as DeepSeekUsage
     return {
-      mood: (data.mood as string) ?? null,
-      affectionDelta: Number(data.affection_delta ?? 0),
+        promptTokens: u.prompt_tokens ?? 0,
+        completionTokens: u.completion_tokens ?? 0,
+        totalTokens: u.total_tokens ?? 0,
+        cacheHitTokens: u.prompt_cache_hit_tokens ?? 0,
+        cacheMissTokens: u.prompt_cache_miss_tokens ?? 0,
     }
-  } catch {
-    // try extracting JSON substring
-  }
-
-  const start = cleaned.indexOf('{')
-  const end = cleaned.lastIndexOf('}') + 1
-  if (start >= 0 && end > start) {
-    try {
-      const data = JSON.parse(cleaned.slice(start, end))
-      return {
-        mood: (data.mood as string) ?? null,
-        affectionDelta: Number(data.affection_delta ?? 0),
-      }
-    } catch {
-      // give up
-    }
-  }
-
-  useLogStore().warn(`情绪解析失败: ${raw.slice(0, 60)}`)
-  return { mood: null, affectionDelta: 0 }
 }
 
-type ChatMsg = { role: string; content: string; name?: string }
+/* ------------------------------------------------------------------ */
+/* DialogueRequest                                                     */
+/* ------------------------------------------------------------------ */
 
-export async function generateDialogue(
-  staticMessages: ChatMsg[],
-  dynamicMessages: ChatMsg[],
-): Promise<string> {
-  const log = useLogStore()
-  const messages = [...staticMessages, ...dynamicMessages]
-  log.info(`Step 1: 生成对话 (model=${import.meta.env.VITE_MODEL}, messages=${messages.length})`)
-  log.debug('对话全量提示词:\n' + messages.map((m, i) => `[${i}] ${m.role}: ${m.content}`).join('\n'))
+export class DialogueRequest
+{
+    private _messages: ChatMsg[] = []
 
-  const resp = await client.chat.completions.create({
-    model: import.meta.env.VITE_MODEL,
-    messages: messages as OpenAI.ChatCompletionMessageParam[],
-    temperature: 0.8,
-    max_tokens: 512,
-  })
+    withMessages(msgs: ChatMsg[]): this
+    {
+        this._messages = msgs
+        return this
+    }
 
-  const text = stripThinkTags(resp.choices[0]?.message?.content?.trim() ?? '')
-  log.info(`LLM 对话响应: ${text.slice(0, 80)}`)
-  return text
+    async execute(): Promise<{ text: string; usage: UsageSnapshot | null }>
+    {
+        const log = useLogStore()
+        log.info(`生成对话 (model=${import.meta.env.VITE_MODEL}, messages=${this._messages.length})`)
+        log.debug('对话提示词:\n' + this._messages.map((m, i) => `[${i}] ${m.role}: ${m.content}`).join('\n'))
+
+        const resp = await client.chat.completions.create({
+            model: import.meta.env.VITE_MODEL,
+            messages: this._messages as OpenAI.ChatCompletionMessageParam[],
+            temperature: 0.8,
+            max_tokens: 512,
+        })
+
+        const raw = resp.choices[0]?.message?.content?.trim() ?? ''
+        const text = this.parseResponse(raw)
+        const usage = extractUsage(resp.usage as unknown as Record<string, unknown>)
+        log.info(`对话响应: ${text.slice(0, 80)} (缓存命中: ${usage?.cacheHitTokens ?? '?'}/${usage?.promptTokens ?? '?'})`)
+        return {text, usage}
+    }
+
+    parseResponse(raw: string): string
+    {
+        return stripThinkTags(raw) || '（沉默）'
+    }
 }
 
-export async function analyzeMood(
-  staticMessages: ChatMsg[],
-  moodMessages: ChatMsg[],
-): Promise<{ mood: string | null; affectionDelta: number }> {
-  const log = useLogStore()
-  const messages = [...staticMessages, ...moodMessages]
-  log.info(`Step 2: 更新情绪 (messages=${messages.length})`)
-  log.debug('情绪全量提示词:\n' + messages.map((m, i) => `[${i}] ${m.role}: ${m.content}`).join('\n'))
+/* ------------------------------------------------------------------ */
+/* MoodRequest                                                         */
+/* ------------------------------------------------------------------ */
 
-  try {
-    const resp = await client.chat.completions.create({
-      model: import.meta.env.VITE_MODEL,
-      messages: messages as OpenAI.ChatCompletionMessageParam[],
-      temperature: 0.3,
-      max_tokens: 100,
-    })
+export class MoodRequest
+{
+    private _messages: ChatMsg[] = []
 
-    const raw = stripThinkTags(resp.choices[0]?.message?.content?.trim() ?? '')
-    log.info(`情绪响应: ${raw.slice(0, 60)}`)
-    return parseMood(raw)
-  } catch (e) {
-    log.warn(`情绪更新失败: ${e}`)
-    return { mood: null, affectionDelta: 0 }
-  }
+    withMessages(msgs: ChatMsg[]): this
+    {
+        this._messages = msgs
+        return this
+    }
+
+    async execute(): Promise<{ mood: string | null; affectionDelta: number; usage: UsageSnapshot | null }>
+    {
+        const log = useLogStore()
+        log.info(`分析情绪 (model=${import.meta.env.VITE_MODEL})`)
+        log.debug('情绪提示词:\n' + this._messages.map((m, i) => `[${i}] ${m.role}: ${m.content}`).join('\n'))
+
+        try
+        {
+            const resp = await client.chat.completions.create({
+                model: import.meta.env.VITE_MODEL,
+                messages: this._messages as OpenAI.ChatCompletionMessageParam[],
+                temperature: 0.3,
+                max_tokens: 100,
+            })
+
+            const raw = stripThinkTags(resp.choices[0]?.message?.content?.trim() ?? '')
+            const usage = extractUsage(resp.usage as unknown as Record<string, unknown>)
+            const parsed = this.parseResponse(raw)
+            log.info(`情绪响应: ${raw.slice(0, 60)} (缓存命中: ${usage?.cacheHitTokens ?? '?'}/${usage?.promptTokens ?? '?'})`)
+            return {...parsed, usage}
+        } catch (e)
+        {
+            log.warn(`情绪更新失败: ${e}`)
+            return {mood: null, affectionDelta: 0, usage: null}
+        }
+    }
+
+    parseResponse(raw: string): { mood: string | null; affectionDelta: number }
+    {
+        try
+        {
+            const data = JSON.parse(raw)
+            return {
+                mood: (data.mood as string) ?? null,
+                affectionDelta: Number(data.affection_delta ?? 0),
+            }
+        } catch
+        {
+            // fall through
+        }
+
+        const start = raw.indexOf('{')
+        const end = raw.lastIndexOf('}') + 1
+        if (start >= 0 && end > start)
+        {
+            try
+            {
+                const data = JSON.parse(raw.slice(start, end))
+                return {
+                    mood: (data.mood as string) ?? null,
+                    affectionDelta: Number(data.affection_delta ?? 0),
+                }
+            } catch
+            {
+                // give up
+            }
+        }
+
+        useLogStore().warn(`情绪解析失败: ${raw.slice(0, 60)}`)
+        return {mood: null, affectionDelta: 0}
+    }
 }

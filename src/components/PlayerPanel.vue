@@ -1,19 +1,20 @@
-<script setup lang="ts">
-import { useGameStore } from '@/stores/game'
-import { usePanelStore } from '@/stores/panel'
+<script lang="ts" setup>
+import {useGameStore} from '@/stores/game'
+import {usePanelStore} from '@/stores/panel'
 import AttributePanel from './AttributePanel.vue'
 
 const store = useGameStore()
 const panelStore = usePanelStore()
 
-function goToDetail() {
+function goToDetail()
+{
   panelStore.navigate('center', 'player-detail')
 }
 </script>
 
 <template>
   <div class="player-panel" @click="goToDetail">
-    <AttributePanel :character="store.player" />
+    <AttributePanel :character="store.player"/>
     <div class="click-hint">点击查看详情</div>
   </div>
 </template>

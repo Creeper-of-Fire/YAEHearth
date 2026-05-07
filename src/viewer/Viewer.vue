@@ -1,7 +1,7 @@
-<script setup lang="ts">
-import { computed, provide } from 'vue'
-import { usePanelStore } from '@/stores/panel'
-import { viewRegistry } from './registry'
+<script lang="ts" setup>
+import {computed, provide} from 'vue'
+import {usePanelStore} from '@/stores/panel'
+import {viewRegistry} from './registry'
 
 const props = defineProps<{ panel: 'left' | 'center' | 'right' }>()
 const store = usePanelStore()
@@ -14,7 +14,7 @@ provide('panel-name', computed(() => props.panel))
 
 <template>
   <component
-    :is="currentComponent"
-    :key="`${panelState.view}:${panelState.params.characterId ?? ''}`"
+      :is="currentComponent"
+      :key="`${panelState.view}:${panelState.params.characterId ?? ''}`"
   />
 </template>

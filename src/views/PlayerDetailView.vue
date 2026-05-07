@@ -1,5 +1,5 @@
-<script setup lang="ts">
-import { useGameStore } from '@/stores/game'
+<script lang="ts" setup>
+import {useGameStore} from '@/stores/game'
 import AttributePanel from '@/components/AttributePanel.vue'
 
 const store = useGameStore()
@@ -11,7 +11,7 @@ const store = useGameStore()
       <div class="detail-title">玩家详情</div>
     </div>
     <div class="detail-body">
-      <AttributePanel :character="store.player" />
+      <AttributePanel :character="store.player"/>
     </div>
   </div>
 </template>

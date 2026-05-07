@@ -1,15 +1,16 @@
-<script setup lang="ts">
-import { useGameStore } from '@/stores/game'
-import { usePanelParams } from '@/viewer/usePanelParams'
-import { usePanelStore } from '@/stores/panel'
+<script lang="ts" setup>
+import {useGameStore} from '@/stores/game'
+import {usePanelParams} from '@/viewer/usePanelParams'
+import {usePanelStore} from '@/stores/panel'
 
 const store = useGameStore()
-const { navigate } = usePanelParams()
+const {navigate} = usePanelParams()
 const panelStore = usePanelStore()
 
-function startDialogue(charId: string) {
-  navigate('dialogue', { characterId: charId })
-  panelStore.navigate('right', 'char-attrs', { characterId: charId })
+function startDialogue(charId: string)
+{
+  navigate('dialogue', {characterId: charId})
+  panelStore.navigate('right', 'char-attrs', {characterId: charId})
 }
 </script>
 
@@ -25,9 +26,9 @@ function startDialogue(charId: string) {
       <div class="interactions-title">角色互动</div>
       <div class="char-grid">
         <div
-          v-for="char in store.characters"
-          :key="char.id"
-          class="char-card"
+            v-for="char in store.characters"
+            :key="char.id"
+            class="char-card"
         >
           <div class="char-card-name">{{ char.name }}</div>
           <div class="char-card-role">{{ char.role }}</div>

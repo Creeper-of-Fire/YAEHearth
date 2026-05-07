@@ -1,30 +1,32 @@
-<script setup lang="ts">
-import { computed } from 'vue'
-import { useGameStore } from '@/stores/game'
-import { usePanelParams } from '@/viewer/usePanelParams'
-import { usePanelStore } from '@/stores/panel'
-import { useDialogueStore } from '@/stores/dialogue'
+<script lang="ts" setup>
+import {computed} from 'vue'
+import {useGameStore} from '@/stores/game'
+import {usePanelParams} from '@/viewer/usePanelParams'
+import {usePanelStore} from '@/stores/panel'
+import {useDialogueStore} from '@/stores/dialogue'
 import AttributePanel from './AttributePanel.vue'
 
-const { params, navigate } = usePanelParams()
+const {params, navigate} = usePanelParams()
 const panelStore = usePanelStore()
 const store = useGameStore()
 const dialogueStore = useDialogueStore()
 
 const characterId = computed(() => params.value.characterId)
 const character = computed(() =>
-  store.characters.find(c => c.id === characterId.value) ?? null,
+    store.characters.find(c => c.id === characterId.value) ?? null,
 )
 const isInDialogue = computed(
-  () => dialogueStore.targetCharacterId === characterId.value && dialogueStore.targetCharacterId !== null,
+    () => dialogueStore.targetCharacterId === characterId.value && dialogueStore.targetCharacterId !== null,
 )
 
-function goBack() {
+function goBack()
+{
   panelStore.navigate('center', 'scene')
   navigate('char-list')
 }
 
-function endConversation() {
+function endConversation()
+{
   dialogueStore.endConversation()
   panelStore.navigate('center', 'scene')
   navigate('char-list')
@@ -34,12 +36,12 @@ function endConversation() {
 <template>
   <div class="character-attributes">
     <template v-if="character">
-      <AttributePanel :character="character" />
+      <AttributePanel :character="character"/>
 
-      <div class="spacer" />
+      <div class="spacer"/>
 
       <div class="actions">
-        <n-button v-if="isInDialogue" type="warning" ghost size="small" @click="endConversation">
+        <n-button v-if="isInDialogue" ghost size="small" type="warning" @click="endConversation">
           结束对话
         </n-button>
         <n-button v-else size="small" @click="goBack">

@@ -11,6 +11,7 @@ const dialogueStore = useDialogueStore()
 const gameStore = useGameStore()
 const inputText = ref('')
 const logContainer = ref<HTMLElement | null>(null)
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
 const characterId = computed(() => params.value.characterId)
 const character = computed(() =>
@@ -44,7 +45,22 @@ function send() {
   const text = inputText.value.trim()
   if (!text || dialogueStore.busy) return
   inputText.value = ''
+  resizeTextarea()
   dialogueStore.sendMessage(text)
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    send()
+  }
+}
+
+function resizeTextarea() {
+  const el = textareaRef.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
 }
 
 function endConversation() {
@@ -63,6 +79,12 @@ function endConversation() {
       <n-button size="small" type="warning" ghost @click="endConversation">
         结束对话
       </n-button>
+    </div>
+    <div v-if="dialogueStore.cumulativeUsage.turnCount > 0" class="stats-bar">
+      <span>缓存命中: {{ (dialogueStore.cacheHitRate * 100).toFixed(1) }}%</span>
+      <span>提示: {{ dialogueStore.cumulativeUsage.promptTokens.toLocaleString() }}</span>
+      <span>补全: {{ dialogueStore.cumulativeUsage.completionTokens.toLocaleString() }}</span>
+      <span>回合: {{ dialogueStore.cumulativeUsage.turnCount }}</span>
     </div>
     <div ref="logContainer" class="dialogue-log">
       <div
@@ -89,12 +111,15 @@ function endConversation() {
       </div>
     </div>
     <div class="input-bar">
-      <input
+      <textarea
+        ref="textareaRef"
         v-model="inputText"
         class="msg-input"
         placeholder="输入你的回应..."
+        rows="1"
         :disabled="dialogueStore.busy"
-        @keyup.enter="send"
+        @keydown="onKeydown"
+        @input="resizeTextarea"
       />
     </div>
   </div>
@@ -105,6 +130,7 @@ function endConversation() {
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .dialogue-header {
@@ -122,8 +148,19 @@ function endConversation() {
   font-weight: bold;
 }
 
+.stats-bar {
+  padding: 4px 24px;
+  background: #1a1a1e;
+  border-bottom: 1px solid #434347;
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: #777777;
+}
+
 .dialogue-log {
   flex: 1;
+  min-height: 0;
   padding: 16px 24px;
   overflow-y: auto;
   display: flex;
@@ -201,6 +238,10 @@ function endConversation() {
   border-radius: 4px;
   font-size: 14px;
   outline: none;
+  resize: none;
+  max-height: 120px;
+  line-height: 1.4;
+  font-family: inherit;
 }
 
 .msg-input:focus {

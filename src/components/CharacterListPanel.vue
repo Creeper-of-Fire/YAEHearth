@@ -1,21 +1,22 @@
-<script setup lang="ts">
-import { computed } from 'vue'
-import { useGameStore } from '@/stores/game'
-import { usePanelStore } from '@/stores/panel'
+<script lang="ts" setup>
+import {computed} from 'vue'
+import {useGameStore} from '@/stores/game'
+import {usePanelStore} from '@/stores/panel'
 
 const store = useGameStore()
 const panelStore = usePanelStore()
 
 const menuOptions = computed(() =>
-  store.characters.map(c => ({
-    label: `${c.name}（${c.role}）`,
-    key: c.id,
-  })),
+    store.characters.map(c => ({
+      label: `${c.name}（${c.role}）`,
+      key: c.id,
+    })),
 )
 
-function onSelect(key: string) {
-  panelStore.navigate('center', 'char-detail', { characterId: key })
-  panelStore.navigate('right', 'char-attrs', { characterId: key })
+function onSelect(key: string)
+{
+  panelStore.navigate('center', 'char-detail', {characterId: key})
+  panelStore.navigate('right', 'char-attrs', {characterId: key})
 }
 </script>
 
@@ -23,8 +24,8 @@ function onSelect(key: string) {
   <div class="character-list-panel">
     <div class="panel-title">在场角色</div>
     <n-menu
-      :options="menuOptions"
-      @update:value="onSelect"
+        :options="menuOptions"
+        @update:value="onSelect"
     />
   </div>
 </template>
