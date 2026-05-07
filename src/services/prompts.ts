@@ -1,5 +1,5 @@
 import { shallowRef, triggerRef, computed, type ComputedRef } from 'vue'
-import type { SceneState } from '@/types/game'
+import type { Character } from '@/types/game'
 
 /* ------------------------------------------------------------------ */
 /* 静态系统提示                                                        */
@@ -119,16 +119,16 @@ function resolveForApi(e: ContextEntry): ApiMessage {
 /* ------------------------------------------------------------------ */
 
 export function buildDialogueDynamic(
-  state: SceneState,
+  target: Character,
+  allCharacters: Character[],
   playerInput: string,
 ): Array<{ role: 'system' | 'user'; content: string }> {
-  const target = state.characters.find(c => c.id === state.selectedId)
-  const targetName = target?.name ?? '???'
-  const targetMood = target?.mood ?? '平静'
-  const targetAffection = target?.affection ?? 0
+  const targetName = target.name
+  const targetMood = target.mood
+  const targetAffection = target.affection
 
-  const others = state.characters
-    .filter(c => c.id !== state.selectedId)
+  const others = allCharacters
+    .filter(c => c.id !== target.id)
     .map(c => `- ${c.name}（${c.role}）：心情 ${c.mood}`)
     .join('\n')
 
@@ -165,13 +165,10 @@ const MOOD_SYSTEM = `你是一个情绪分析器。根据以下对话，评估�
 export { MOOD_SYSTEM }
 
 export function buildMoodDynamic(
-  state: SceneState,
+  target: Character,
   newDialogue: string,
   recentMessages: Array<{ name: string; text: string }>,
 ): Array<{ role: 'system' | 'user'; content: string }> {
-  const target = state.characters.find(c => c.id === state.selectedId)
-  const targetName = target?.name ?? '???'
-
   return [
     {
       role: 'system',
@@ -179,7 +176,7 @@ export function buildMoodDynamic(
     },
     {
       role: 'user',
-      content: `角色：${targetName}（${target?.role ?? ''}），当前心情：${target?.mood ?? '平静'}，好感度：${target?.affection ?? 0}/5\n\n最近对话：\n${recentMessages.map(m => `${m.name}: ${m.text}`).join('\n')}\n\n${targetName}刚刚说：「${newDialogue}」`,
+      content: `角色：${target.name}（${target.role}），当前心情：${target.mood}，好感度：${target.affection}/5\n\n最近对话：\n${recentMessages.map(m => `${m.name}: ${m.text}`).join('\n')}\n\n${target.name}刚刚说：「${newDialogue}」`,
     },
   ]
 }

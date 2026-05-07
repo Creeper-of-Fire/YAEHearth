@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { darkTheme } from 'naive-ui'
 import type { GlobalThemeOverrides } from 'naive-ui'
-import CharacterList from './components/CharacterList.vue'
-import ScenePanel from './components/ScenePanel.vue'
-import CharacterDetail from './components/CharacterDetail.vue'
+import Viewer from '@/viewer/Viewer.vue'
+import LogModal from './components/LogModal.vue'
 
 const themeOverrides: GlobalThemeOverrides = {
   common: {
@@ -34,10 +33,11 @@ const themeOverrides: GlobalThemeOverrides = {
 <template>
   <n-config-provider :theme="darkTheme" :theme-overrides="themeOverrides">
     <div class="app-layout">
-      <CharacterList class="panel-left" />
-      <ScenePanel class="panel-center" />
-      <CharacterDetail class="panel-right" />
+      <Viewer panel="left" class="panel-left" />
+      <Viewer panel="center" class="panel-center" />
+      <Viewer panel="right" class="panel-right" />
     </div>
+    <LogModal />
   </n-config-provider>
 </template>
 
@@ -78,7 +78,6 @@ html, body, #app {
 .panel-right {
   background: #19191a;
   border-left: 1px solid #434347;
-  padding: 16px;
   overflow-y: auto;
   height: 100%;
 }

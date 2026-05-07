@@ -13,7 +13,6 @@ export interface SceneState {
   timeOfDay: string
   atmosphere: string
   characters: Character[]
-  selectedId: string | null
 }
 
 export function defaultScene(): SceneState {
@@ -50,6 +49,5 @@ export function defaultScene(): SceneState {
         affection: 0,
       },
     ],
-    selectedId: 'lila',
   }
 }
