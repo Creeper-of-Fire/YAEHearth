@@ -5,7 +5,7 @@ import {useLogStore} from '@/stores/log'
 const log = useLogStore()
 const show = ref(false)
 
-const recentLogs = computed(() => log.entries.value.slice(-50))
+const recentLogs = computed(() => log.entries.value.slice(-500))
 </script>
 
 <template>
