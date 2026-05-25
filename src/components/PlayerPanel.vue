@@ -24,6 +24,7 @@ function goToDetail()
   padding: 16px;
   cursor: pointer;
   height: 100%;
+  overflow-y: auto;
   transition: background 0.15s;
 }
 

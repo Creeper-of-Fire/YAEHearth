@@ -59,6 +59,7 @@ function endConversation()
 .character-attributes {
   padding: 16px;
   height: 100%;
+  overflow-y: auto;
 }
 
 .spacer {

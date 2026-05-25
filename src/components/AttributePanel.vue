@@ -2,6 +2,7 @@
 import {computed} from 'vue'
 import type {ContentEntity} from '@/content/types'
 import MarkdownView from '@/components/MarkdownView.vue'
+import FieldTree from '@/components/FieldTree.vue'
 
 const props = defineProps<{ entity: ContentEntity }>()
 
@@ -15,14 +16,7 @@ const displayFields = computed(() =>
   <div class="attr-panel">
     <div class="attr-name">{{ entity.frontmatter.name ?? entity.id }}</div>
 
-    <div
-        v-for="[key, val] in displayFields"
-        :key="key"
-        class="attr-row"
-    >
-      <span class="attr-label">{{ key }}</span>
-      <span class="attr-value">{{ val }}</span>
-    </div>
+    <FieldTree :fields="displayFields"/>
 
     <div class="spacer"/>
     <div class="attr-section-label">描述</div>
