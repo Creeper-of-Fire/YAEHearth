@@ -1,5 +1,5 @@
 import {computed, type ComputedRef, shallowRef, triggerRef} from 'vue'
-import type {Character} from '@/types/game'
+import type {ContentEntity} from '@/content/types'
 
 /* ------------------------------------------------------------------ */
 /* 工作模式                                                            */
@@ -168,15 +168,15 @@ function resolveForApi(e: ContextEntry): ApiMessage
 /* ------------------------------------------------------------------ */
 
 export function buildDialogueDynamic(
-    target: Character,
-    allCharacters: Character[]
+    target: ContentEntity,
+    allCharacters: ContentEntity[]
 ): Array<{ role: 'system' | 'user'; content: string }>
 {
     const messages: Array<{ role: 'system' | 'user'; content: string }> = []
 
     const others = allCharacters
         .filter(c => c.id !== target.id)
-        .map(c => `- ${c.name}（${c.role}）：心情 ${c.mood}`)
+        .map(c => `- ${c.frontmatter.name ?? c.id}（${c.frontmatter.role ?? ''}）：心情 ${c.frontmatter.mood ?? '未知'}`)
         .join('\n')
 
     if (others)
@@ -187,14 +187,16 @@ export function buildDialogueDynamic(
         })
     }
 
+    const name = target.frontmatter.name ?? target.id
+
     messages.push(
         {
             role: 'user',
-            content: `你正在扮演「${target.name}」进行对话。`,
+            content: `你正在扮演「${name}」进行对话。`,
         },
         {
             role: 'user',
-            content: `## 当前状态：${target.name}\n心情：${target.mood}\n好感度：${target.affection}/5`,
+            content: `## 当前状态：${name}\n心情：${target.frontmatter.mood ?? '未知'}\n好感度：${target.frontmatter.affection ?? 0}/5`,
         },
     )
 
@@ -207,14 +209,15 @@ export function buildDialogueDynamic(
 /* ------------------------------------------------------------------ */
 
 export function buildMoodDynamic(
-    target: Character,
+    target: ContentEntity,
     newDialogue: string,
 ): Array<{ role: 'system' | 'user'; content: string }>
 {
+    const name = target.frontmatter.name ?? target.id
     return [
         {
             role: 'user',
-            content: `${target.name}刚刚说：「${newDialogue}」\n\n**${buildModeIndicator('mood')}**`,
+            content: `${name}刚刚说：「${newDialogue}」\n\n**${buildModeIndicator('mood')}**`,
         },
     ]
 }

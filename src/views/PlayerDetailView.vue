@@ -11,7 +11,7 @@ const store = useGameStore()
       <div class="detail-title">玩家详情</div>
     </div>
     <div class="detail-body">
-      <AttributePanel :character="store.player"/>
+      <AttributePanel v-if="store.player" :entity="store.player"/>
     </div>
   </div>
 </template>

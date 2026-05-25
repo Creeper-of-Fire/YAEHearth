@@ -1,35 +1,49 @@
 import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
-import type {SceneState} from '@/types/game'
-import {defaultScene} from '@/types/game'
+import {useContentStore} from '@/content/store'
 import {useLogStore} from '@/stores/log'
+import type {ContentEntity} from '@/content/types'
 
 export const useGameStore = defineStore('game', () =>
 {
-    const scene = ref<SceneState>(defaultScene())
+    const contentStore = useContentStore()
+    const log = useLogStore()
 
-    const player = ref({
-        id: 'player',
-        name: '旅人',
-        role: '冒险者',
-        description: '一个来自远方的旅人，身披风尘仆仆的斗篷，眼中带着对未知的好奇与警惕。',
-        personality: '沉稳内敛，善于观察。在陌生环境中保持警觉，但面对善意会逐渐敞开心扉。',
-        mood: '平静',
-        affection: 0,
-    })
+    const activeSceneId = ref('tavern-night')
 
-    const characters = computed(() => scene.value.characters)
+    const activeScene = computed<ContentEntity | undefined>(() =>
+        contentStore.getEntity('scenes', activeSceneId.value),
+    )
 
-    function resetScene()
+    /** 场景中登场的角色 id 列表 */
+    const characterIds = computed<string[]>(() =>
+        activeScene.value?.frontmatter.characters ?? [],
+    )
+
+    /** 场景中的所有角色实体 */
+    const characters = computed<ContentEntity[]>(() =>
+        characterIds.value
+            .map(id => contentStore.getEntity('characters', id))
+            .filter((e): e is ContentEntity => e !== undefined),
+    )
+
+    /** 玩家角色实体 */
+    const player = computed<ContentEntity | undefined>(() =>
+        contentStore.getEntity('characters', 'player'),
+    )
+
+    function resetScene(): void
     {
-        scene.value = defaultScene()
-        useLogStore().info('场景已重置')
+        activeSceneId.value = 'tavern-night'
+        log.info('场景已重置')
     }
 
     return {
-        scene,
-        player,
+        activeSceneId,
+        activeScene,
         characters,
+        characterIds,
+        player,
         resetScene,
     }
 })

@@ -1,15 +1,17 @@
 import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
 import {useGameStore} from '@/stores/game'
+import {useContentStore} from '@/content/store'
 import {useLogStore} from '@/stores/log'
 import {buildDialogueDynamic, buildMoodDynamic, StaticContext, SYSTEM_PROMPT} from '@/services/prompts'
 import type {ChatMsg, UsageSnapshot} from '@/services/agent'
 import {DialogueRequest, MoodRequest} from '@/services/agent'
-import type {Character} from '@/types/game'
+import type {ContentEntity} from '@/content/types'
 
 export const useDialogueStore = defineStore('dialogue', () =>
 {
     const gameStore = useGameStore()
+    const contentStore = useContentStore()
     const targetCharacterId = ref<string | null>(null)
     const busy = ref(false)
     const ctx = new StaticContext()
@@ -50,23 +52,21 @@ export const useDialogueStore = defineStore('dialogue', () =>
         }
     }
 
-    function findTarget(charId: string): Character | undefined
+    function findTarget(charId: string): ContentEntity | undefined
     {
-        return gameStore.scene.characters.find(c => c.id === charId)
+        return contentStore.getEntity('characters', charId)
     }
 
     function ensureCharacterCard(charId: string)
     {
         if (ctx.loadedCardIds.includes(charId)) return
-        const char = findTarget(charId)
-        if (!char) return
+        const entity = findTarget(charId)
+        if (!entity) return
         ctx.append({
             type: 'char-card',
-            view: computed(() =>
-                `## 角色卡片：${char.name}\n身份：${char.role}\n外貌：${char.description}\n性格：${char.personality}`,
-            ),
+            view: computed(() => entity.body),
             charId,
-            name: computed(() => char.name),
+            name: computed(() => String(entity.frontmatter.name ?? charId)),
         })
     }
 
@@ -77,15 +77,16 @@ export const useDialogueStore = defineStore('dialogue', () =>
         resetUsage()
         ctx.append({type: 'system', text: SYSTEM_PROMPT})
         ctx.commit()
+
+        const scene = gameStore.activeScene
         ctx.append({
             type: 'scene',
-            view: computed(() =>
-                `## 场景设定\n地点：${gameStore.scene.location}\n时间：${gameStore.scene.timeOfDay}\n氛围：${gameStore.scene.atmosphere}`,
-            ),
+            view: computed(() => scene?.body ?? ''),
         })
         ctx.commit()
+
         const target = findTarget(charId)
-        useLogStore().info(`对话目标: ${target?.name ?? '???'}`)
+        useLogStore().info(`对话目标: ${target?.frontmatter.name ?? '???'}`)
     }
 
     async function sendMessage(text: string)
@@ -95,7 +96,7 @@ export const useDialogueStore = defineStore('dialogue', () =>
         ensureCharacterCard(targetCharacterId.value)
         const log = useLogStore()
         const target = findTarget(targetCharacterId.value)
-        const speakerName = target?.name ?? '???'
+        const speakerName = target?.frontmatter.name ?? '???'
 
         ctx.append({type: 'player', text, name: '玩家'})
         log.info(`玩家: ${text.slice(0, 30)}`)
@@ -104,7 +105,7 @@ export const useDialogueStore = defineStore('dialogue', () =>
         {
             ctx.commit()
             const staticMsgs = ctx.build()
-            const dynamicMsgs = buildDialogueDynamic(target!, gameStore.scene.characters)
+            const dynamicMsgs = buildDialogueDynamic(target!, gameStore.characters)
             const messages: ChatMsg[] = [...staticMsgs, ...dynamicMsgs]
 
             const dialogueResult = await new DialogueRequest()
@@ -128,8 +129,11 @@ export const useDialogueStore = defineStore('dialogue', () =>
 
             if (target)
             {
-                if (moodResult.mood) target.mood = moodResult.mood
-                target.affection = Math.max(0, Math.min(5, target.affection + moodResult.affectionDelta))
+                const patch: Record<string, any> = {}
+                if (moodResult.mood) patch.mood = moodResult.mood
+                const currentAffection = (target.frontmatter.affection as number) ?? 0
+                patch.affection = Math.max(0, Math.min(5, currentAffection + moodResult.affectionDelta))
+                await contentStore.updateFrontmatter('characters', target.id, patch)
             }
 
             log.info(`${speakerName}: ${aiText.slice(0, 40)}`)

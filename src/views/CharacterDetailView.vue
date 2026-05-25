@@ -28,7 +28,7 @@ function startDialogue()
     </div>
     <div class="detail-body">
       <template v-if="character">
-        <AttributePanel :character="character"/>
+        <AttributePanel :entity="character"/>
         <div class="spacer"/>
         <n-button type="primary" @click="startDialogue">
           开始对话

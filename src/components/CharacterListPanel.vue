@@ -8,7 +8,7 @@ const panelStore = usePanelStore()
 
 const menuOptions = computed(() =>
     store.characters.map(c => ({
-      label: `${c.name}（${c.role}）`,
+      label: `${c.frontmatter.name ?? c.id}（${c.frontmatter.role ?? ''}）`,
       key: c.id,
     })),
 )

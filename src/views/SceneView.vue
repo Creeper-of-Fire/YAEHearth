@@ -17,9 +17,9 @@ function startDialogue(charId: string)
 <template>
   <div class="scene-view">
     <div class="scene-header">
-      <div class="scene-location">{{ store.scene.location }}</div>
-      <div class="scene-time">{{ store.scene.timeOfDay }}</div>
-      <div class="scene-atmosphere">{{ store.scene.atmosphere }}</div>
+      <div class="scene-location">{{ store.activeScene?.frontmatter.location ?? '未知地点' }}</div>
+      <div class="scene-time">{{ store.activeScene?.frontmatter.timeOfDay ?? '' }}</div>
+      <div class="scene-atmosphere">{{ store.activeScene?.body ?? '' }}</div>
     </div>
 
     <div class="scene-interactions">
@@ -30,9 +30,9 @@ function startDialogue(charId: string)
             :key="char.id"
             class="char-card"
         >
-          <div class="char-card-name">{{ char.name }}</div>
-          <div class="char-card-role">{{ char.role }}</div>
-          <div class="char-card-mood">{{ char.mood }}</div>
+          <div class="char-card-name">{{ char.frontmatter.name ?? char.id }}</div>
+          <div class="char-card-role">{{ char.frontmatter.role ?? '' }}</div>
+          <div class="char-card-mood">{{ char.frontmatter.mood ?? '未知' }}</div>
           <n-button size="small" type="primary" @click="startDialogue(char.id)">
             开始对话
           </n-button>

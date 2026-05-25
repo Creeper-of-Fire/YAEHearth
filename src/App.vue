@@ -1,8 +1,19 @@
 <script lang="ts" setup>
 import type {GlobalThemeOverrides} from 'naive-ui'
-import {darkTheme} from 'naive-ui'
+import {darkTheme, NSpin} from 'naive-ui'
 import Viewer from '@/viewer/Viewer.vue'
 import LogModal from './components/LogModal.vue'
+import {useContentStore} from '@/content/store'
+import {onMounted, ref} from 'vue'
+
+const contentStore = useContentStore()
+const loading = ref(true)
+
+onMounted(async () =>
+{
+  await contentStore.initialize()
+  loading.value = false
+})
 
 const themeOverrides: GlobalThemeOverrides = {
   common: {
@@ -32,7 +43,11 @@ const themeOverrides: GlobalThemeOverrides = {
 
 <template>
   <n-config-provider :theme="darkTheme" :theme-overrides="themeOverrides">
-    <div class="app-layout">
+    <div v-if="loading" class="loading-screen">
+      <NSpin size="large"/>
+      <span class="loading-text">正在加载内容...</span>
+    </div>
+    <div v-else class="app-layout">
       <Viewer class="panel-left" panel="left"/>
       <Viewer class="panel-center" panel="center"/>
       <Viewer class="panel-right" panel="right"/>
@@ -81,5 +96,19 @@ html, body, #app {
   border-left: 1px solid #434347;
   overflow-y: auto;
   height: 100%;
+}
+
+.loading-screen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.loading-text {
+  color: #777777;
+  font-size: 14px;
 }
 </style>

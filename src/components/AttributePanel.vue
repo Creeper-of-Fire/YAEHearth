@@ -1,23 +1,18 @@
 <script lang="ts" setup>
-import type {Character} from '@/types/game'
+import type {ContentEntity} from '@/content/types'
 
-defineProps<{ character: Character }>()
+defineProps<{ entity: ContentEntity }>()
 </script>
 
 <template>
   <div class="attr-panel">
-    <div class="attr-name">{{ character.name }}</div>
-    <div class="attr-role">{{ character.role }}</div>
+    <div class="attr-name">{{ entity.frontmatter.name ?? entity.id }}</div>
+    <div class="attr-role">{{ entity.frontmatter.role ?? '' }}</div>
 
     <div class="spacer"/>
 
     <div class="attr-label">描述</div>
-    <div class="attr-text">{{ character.description }}</div>
-
-    <div class="spacer"/>
-
-    <div class="attr-label">性格</div>
-    <div class="attr-text">{{ character.personality }}</div>
+    <div class="attr-text">{{ entity.body }}</div>
 
     <div class="spacer"/>
 
@@ -26,15 +21,15 @@ defineProps<{ character: Character }>()
       <span
           v-for="i in 5"
           :key="i"
-          :class="i <= character.affection ? 'heart-filled' : 'heart-empty'"
+          :class="i <= (entity.frontmatter.affection ?? 0) ? 'heart-filled' : 'heart-empty'"
           class="heart"
-      >{{ i <= character.affection ? '❤' : '♡' }}</span>
+      >{{ i <= (entity.frontmatter.affection ?? 0) ? '❤' : '♡' }}</span>
     </div>
 
     <div class="spacer"/>
 
     <div class="attr-label">心情</div>
-    <div class="attr-text">{{ character.mood }}</div>
+    <div class="attr-text">{{ entity.frontmatter.mood ?? '未知' }}</div>
   </div>
 </template>
 

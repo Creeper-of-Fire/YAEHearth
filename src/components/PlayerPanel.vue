@@ -14,7 +14,7 @@ function goToDetail()
 
 <template>
   <div class="player-panel" @click="goToDetail">
-    <AttributePanel :character="store.player"/>
+    <AttributePanel v-if="store.player" :entity="store.player"/>
     <div class="click-hint">点击查看详情</div>
   </div>
 </template>

@@ -75,7 +75,7 @@ function endConversation() {
 <template>
   <div class="dialogue-view">
     <div class="dialogue-header">
-      <span class="dialogue-target">正在与 {{ character?.name ?? '???' }} 对话</span>
+      <span class="dialogue-target">正在与 {{ character?.frontmatter.name ?? '???' }} 对话</span>
       <n-button size="small" type="warning" ghost @click="endConversation">
         结束对话
       </n-button>

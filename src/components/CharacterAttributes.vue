@@ -36,7 +36,7 @@ function endConversation()
 <template>
   <div class="character-attributes">
     <template v-if="character">
-      <AttributePanel :character="character"/>
+      <AttributePanel :entity="character"/>
 
       <div class="spacer"/>
 
