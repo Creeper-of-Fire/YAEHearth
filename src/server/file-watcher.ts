@@ -1,8 +1,16 @@
 import type {FSWatcher} from 'chokidar'
 import chokidar from 'chokidar'
 import type {IncomingMessage, ServerResponse} from 'node:http'
-import {basename} from 'node:path'
+import {basename, dirname} from 'node:path'
 import {parseContentFile, typeFromPath, type ParsedContent} from './parser'
+
+const PROMPT_FOLDER_NAME = 'system_prompts'
+
+/** 检测文件是否位于 system_prompts 目录下 */
+function isPromptFile(filePath: string): boolean
+{
+    return filePath.endsWith('.md') && basename(dirname(filePath)) === PROMPT_FOLDER_NAME
+}
 
 export interface WatcherEvent
 {
@@ -41,28 +49,51 @@ export function startWatcher(contentDir: string): ContentWatcher
     watcher.on('add', (filePath) =>
     {
         const type = typeFromPath(filePath)
-        if (!type) return
-        const parsed = parseContentFile(filePath)
-        emit({action: 'add', type, id: parsed.id, entity: {...parsed, type}})
+        if (type)
+        {
+            const parsed = parseContentFile(filePath)
+            emit({action: 'add', type, id: parsed.id, entity: {...parsed, type}})
+        }
+        else if (isPromptFile(filePath))
+        {
+            const id = basename(filePath).replace(/\.md$/, '')
+            emit({action: 'add', type: PROMPT_FOLDER_NAME, id})
+        }
     })
 
     watcher.on('change', (filePath) =>
     {
         const type = typeFromPath(filePath)
-        if (!type) return
-        // 防抖：跳过 API 写入后 200ms 内的自身触发
-        const lastWrite = writeTimestamps.get(filePath) ?? 0
-        if (Date.now() - lastWrite < 200) return
-        const parsed = parseContentFile(filePath)
-        emit({action: 'change', type, id: parsed.id, entity: {...parsed, type}})
+        if (type)
+        {
+            // 防抖：跳过 API 写入后 200ms 内的自身触发
+            const lastWrite = writeTimestamps.get(filePath) ?? 0
+            if (Date.now() - lastWrite < 200) return
+            const parsed = parseContentFile(filePath)
+            emit({action: 'change', type, id: parsed.id, entity: {...parsed, type}})
+        }
+        else if (isPromptFile(filePath))
+        {
+            const lastWrite = writeTimestamps.get(filePath) ?? 0
+            if (Date.now() - lastWrite < 200) return
+            const id = basename(filePath).replace(/\.md$/, '')
+            emit({action: 'change', type: PROMPT_FOLDER_NAME, id})
+        }
     })
 
     watcher.on('unlink', (filePath) =>
     {
         const type = typeFromPath(filePath)
-        if (!type) return
-        const id = basename(filePath).replace(/\.[^.]+$/, '')
-        emit({action: 'delete', type, id})
+        if (type)
+        {
+            const id = basename(filePath).replace(/\.[^.]+$/, '')
+            emit({action: 'delete', type, id})
+        }
+        else if (isPromptFile(filePath))
+        {
+            const id = basename(filePath).replace(/\.md$/, '')
+            emit({action: 'delete', type: PROMPT_FOLDER_NAME, id})
+        }
     })
 
     return {

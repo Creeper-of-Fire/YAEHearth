@@ -43,7 +43,7 @@ export function parseContentFile(filePath: string): ParsedContent
     const raw = readFileSync(filePath, 'utf-8')
     const {data, content} = matter(raw)
     const id = data.id ?? idFromPath(filePath)
-    return {id, frontmatter: data, body: content.trim()}
+    return {id, frontmatter: data, body: content}
 }
 
 /** 序列化回 markdown + frontmatter 字符串 */

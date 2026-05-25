@@ -16,7 +16,6 @@ function stripThinkTags(text: string): string
     return text
         .replace(/<think[^>]*>[\s\S]*?<\/think\s*>/g, '')
         .replace(/<thought>[\s\S]*?<\/thought>/g, '')
-        .trim()
 }
 
 export type ChatMsg = { role: string; content: string; name?: string }
@@ -83,7 +82,7 @@ export class DialogueRequest
             max_tokens: 512,
         })
 
-        const raw = resp.choices[0]?.message?.content?.trim() ?? ''
+        const raw = resp.choices[0]?.message?.content ?? ''
         const text = this.parseResponse(raw)
         const usage = extractUsage(resp.usage as unknown as Record<string, unknown>)
         log.info(`对话响应: ${text.slice(0, 80)} (缓存命中: ${usage?.cacheHitTokens ?? '?'}/${usage?.promptTokens ?? '?'})`)
@@ -133,7 +132,7 @@ export class EditorRequest
                 max_tokens: 200,
             })
 
-            const raw = stripThinkTags(resp.choices[0]?.message?.content?.trim() ?? '')
+            const raw = stripThinkTags(resp.choices[0]?.message?.content ?? '')
             const usage = extractUsage(resp.usage as unknown as Record<string, unknown>)
             const operations = this.parseResponse(raw)
             log.info(`编辑响应: ${raw.slice(0, 60)} (${operations.length} ops, 缓存命中: ${usage?.cacheHitTokens ?? '?'}/${usage?.promptTokens ?? '?'})`)

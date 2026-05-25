@@ -2,7 +2,9 @@ import type {IncomingMessage, ServerResponse} from 'node:http'
 import {readdirSync, statSync} from 'node:fs'
 import {join} from 'node:path'
 import {parseContentFile, typeFromPath, writeContentFile, type ParsedContent} from './parser'
+import {resolveWorkspacePrompt} from './prompt-assembler'
 import type {ContentWatcher} from './file-watcher'
+import {resolve, relative} from 'node:path'
 
 function sendJson(res: ServerResponse, data: any): void
 {
@@ -70,6 +72,20 @@ export function contentApiMiddleware(contentDir: string, watcher: ContentWatcher
     {
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`)
         const pathParts = url.pathname.replace(/^\/__content\/?/, '').split('/').filter(Boolean)
+
+        // GET /__content/system_prompt — 组装工作区系统提示词
+        if (req.method === 'GET' && pathParts.length === 1 && pathParts[0] === 'system_prompt')
+        {
+            const startRel = url.searchParams.get('startDir') ?? ''
+            const startDir = resolve(contentDir, startRel)
+            // 安全校验：确保 startDir 仍在 contentDir 内
+            const rel = relative(contentDir, startDir)
+            if (rel.startsWith('..') || resolve(contentDir, rel) !== startDir)
+            {
+                return sendError(res, 400, 'Invalid startDir')
+            }
+            return sendJson(res, resolveWorkspacePrompt(contentDir, startDir))
+        }
 
         // GET /__content/types
         if (req.method === 'GET' && pathParts.length === 1 && pathParts[0] === 'types')

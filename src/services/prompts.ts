@@ -52,6 +52,26 @@ export const SYSTEM_PROMPT = `你是一个角色扮演引擎，能够以多种�
 - 只修改确实需要变化的字段`
 
 /* ------------------------------------------------------------------ */
+/* 工作区系统提示词                                                     */
+/* ------------------------------------------------------------------ */
+
+export async function fetchWorkspacePrompt(startDir?: string): Promise<string>
+{
+    try
+    {
+        const params = startDir ? `?startDir=${encodeURIComponent(startDir)}` : ''
+        const res = await fetch(`/__content/system_prompt${params}`)
+        if (!res.ok) return ''
+        const data = await res.json()
+        return data.text ?? ''
+    }
+    catch
+    {
+        return ''
+    }
+}
+
+/* ------------------------------------------------------------------ */
 /* ContextEntry — 判别联合                                             */
 /* ------------------------------------------------------------------ */
 

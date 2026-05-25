@@ -19,8 +19,8 @@ const character = computed(() =>
   gameStore.characters.find(c => c.id === characterId.value) ?? null,
 )
 
-function initOrSwitchDialogue(charId: string) {
-  dialogueStore.initDialogue(charId)
+async function initOrSwitchDialogue(charId: string) {
+  await dialogueStore.initDialogue(charId)
 }
 
 onMounted(() => {

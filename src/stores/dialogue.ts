@@ -3,7 +3,7 @@ import {computed, ref} from 'vue'
 import {useGameStore} from '@/stores/game'
 import {useContentStore} from '@/content/store'
 import {useLogStore} from '@/stores/log'
-import {buildDialogueDynamic, buildEditorDynamic, StaticContext, SYSTEM_PROMPT} from '@/services/prompts'
+import {buildDialogueDynamic, buildEditorDynamic, fetchWorkspacePrompt, StaticContext, SYSTEM_PROMPT} from '@/services/prompts'
 import type {ChatMsg, UsageSnapshot} from '@/services/agent'
 import {DialogueRequest, EditorRequest} from '@/services/agent'
 import type {ContentEntity} from '@/content/types'
@@ -70,12 +70,19 @@ export const useDialogueStore = defineStore('dialogue', () =>
         })
     }
 
-    function initDialogue(charId: string)
+    async function initDialogue(charId: string)
     {
         targetCharacterId.value = charId
         ctx.reset()
         resetUsage()
         ctx.append({type: 'system', text: SYSTEM_PROMPT})
+
+        const workspacePrompt = await fetchWorkspacePrompt()
+        if (workspacePrompt)
+        {
+            ctx.append({type: 'system', text: workspacePrompt})
+        }
+
         ctx.commit()
 
         const scene = gameStore.activeScene
