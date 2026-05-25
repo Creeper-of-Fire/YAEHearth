@@ -79,13 +79,12 @@ export class DialogueRequest
             model: import.meta.env.VITE_MODEL,
             messages: this._messages as OpenAI.ChatCompletionMessageParam[],
             temperature: 0.8,
-            max_tokens: 512,
         })
 
         const raw = resp.choices[0]?.message?.content ?? ''
         const text = this.parseResponse(raw)
         const usage = extractUsage(resp.usage as unknown as Record<string, unknown>)
-        log.info(`对话响应: ${text.slice(0, 80)} (缓存命中: ${usage?.cacheHitTokens ?? '?'}/${usage?.promptTokens ?? '?'})`)
+        log.info(`对话响应: ${text} (缓存命中: ${usage?.cacheHitTokens ?? '?'}/${usage?.promptTokens ?? '?'})`)
         return {text, usage}
     }
 
@@ -130,13 +129,12 @@ export class EditorRequest
                 model: import.meta.env.VITE_MODEL,
                 messages: this._messages as OpenAI.ChatCompletionMessageParam[],
                 temperature: 0.3,
-                max_tokens: 200,
             })
 
             const raw = stripThinkTags(resp.choices[0]?.message?.content ?? '')
             const usage = extractUsage(resp.usage as unknown as Record<string, unknown>)
             const operations = this.parseResponse(raw)
-            log.info(`编辑响应: ${raw.slice(0, 60)} (${operations.length} ops, 缓存命中: ${usage?.cacheHitTokens ?? '?'}/${usage?.promptTokens ?? '?'})`)
+            log.info(`编辑响应: ${raw} (${operations.length} ops, 缓存命中: ${usage?.cacheHitTokens ?? '?'}/${usage?.promptTokens ?? '?'})`)
             return {operations, usage}
         } catch (e)
         {
@@ -171,7 +169,7 @@ export class EditorRequest
             })
         } catch
         {
-            useLogStore().warn(`编辑操作解析失败: ${raw.slice(0, 60)}`)
+            useLogStore().warn(`编辑操作解析失败: ${raw}`)
             return []
         }
     }

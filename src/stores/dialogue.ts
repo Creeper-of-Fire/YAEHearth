@@ -107,7 +107,7 @@ export const useDialogueStore = defineStore('dialogue', () =>
         const speakerName = target?.frontmatter.name ?? '???'
 
         ctx.append({type: 'player', text, name: '玩家'})
-        log.info(`玩家: ${text.slice(0, 30)}`)
+        log.info(`玩家: ${text}`)
 
         // 已加载静态人物卡的角色实体——"谁在场"的唯一真相来源
         const loadedEntities = ctx.loadedCardIds
@@ -129,7 +129,7 @@ export const useDialogueStore = defineStore('dialogue', () =>
             const aiText = dialogueResult.text
 
             ctx.append({type: 'assistant', text: aiText, name: speakerName})
-            log.info(`${speakerName}: ${aiText.slice(0, 40)}`)
+            log.info(`${speakerName}: ${aiText}`)
             ctx.commit()
 
             // 编辑操作独立 try-catch，失败不影响对话显示
