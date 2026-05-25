@@ -5,11 +5,11 @@ import type {ContentEntity} from '@/content/types'
 /* 工作模式                                                            */
 /* ------------------------------------------------------------------ */
 
-export type WorkMode = 'dialogue' | 'mood'
+export type WorkMode = 'dialogue' | 'edit'
 
 const WORK_MODE_LABELS: Record<WorkMode, string> = {
     dialogue: '对话演绎',
-    mood: '情绪分析',
+    edit: '字段编辑',
 }
 
 export function buildModeIndicator(mode: WorkMode): string
@@ -40,15 +40,16 @@ export const SYSTEM_PROMPT = `你是一个角色扮演引擎，能够以多种�
 - 不使用 markdown 格式
 - 其他角色有合理理由时可在对话中自然提及
 
-## 情绪分析
+## 字段编辑
 
-在情绪分析模式下，你评估目标角色在对话中的心理状态变化。
+在字段编辑模式下，你根据对话内容判断角色的哪些 frontmatter 字段需要更新。
 
 规则：
-- 只返回 JSON，不包含任何其他文字
-- 格式：{"mood": "2-4个中文词描述心情", "affection_delta": 整数}
-- mood：用2-4个中文词描述角色当前心情
-- affection_delta：好感度变化量，范围 -1 到 1（-1 降低、0 不变、1 升高）`
+- 只返回 JSON 数组，不包含任何其他文字
+- 每项格式取决于字段类型：
+  - 字符串字段：{"op": "set", "field": "字段名", "value": "新值"}
+  - 数字字段：{"op": "adjust", "field": "字段名", "delta": 变化量}
+- 只修改确实需要变化的字段`
 
 /* ------------------------------------------------------------------ */
 /* ContextEntry — 判别联合                                             */
@@ -174,9 +175,18 @@ export function buildDialogueDynamic(
 {
     const messages: Array<{ role: 'system' | 'user'; content: string }> = []
 
+    function describe(e: ContentEntity): string
+    {
+        const meta = Object.entries(e.frontmatter)
+            .filter(([k]) => k !== 'id')
+            .map(([k, v]) => `${k}: ${v}`)
+            .join('，')
+        return `${e.frontmatter.name ?? e.id}${meta ? `（${meta}）` : ''}`
+    }
+
     const others = allCharacters
         .filter(c => c.id !== target.id)
-        .map(c => `- ${c.frontmatter.name ?? c.id}（${c.frontmatter.role ?? ''}）：心情 ${c.frontmatter.mood ?? '未知'}`)
+        .map(c => `- ${describe(c)}`)
         .join('\n')
 
     if (others)
@@ -188,6 +198,10 @@ export function buildDialogueDynamic(
     }
 
     const name = target.frontmatter.name ?? target.id
+    const selfMeta = Object.entries(target.frontmatter)
+        .filter(([k]) => k !== 'id' && k !== 'name')
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('\n')
 
     messages.push(
         {
@@ -196,7 +210,7 @@ export function buildDialogueDynamic(
         },
         {
             role: 'user',
-            content: `## 当前状态：${name}\n心情：${target.frontmatter.mood ?? '未知'}\n好感度：${target.frontmatter.affection ?? 0}/5`,
+            content: `## 当前状态：${name}\n${selfMeta}`,
         },
     )
 
@@ -204,20 +218,33 @@ export function buildDialogueDynamic(
 }
 
 /* ------------------------------------------------------------------ */
-/* 动态部分 — 情绪分析                                                 */
+/* 动态部分 — 字段编辑                                                 */
 
 /* ------------------------------------------------------------------ */
 
-export function buildMoodDynamic(
+export function buildEditorDynamic(
     target: ContentEntity,
     newDialogue: string,
 ): Array<{ role: 'system' | 'user'; content: string }>
 {
     const name = target.frontmatter.name ?? target.id
+    const currentFields = Object.entries(target.frontmatter)
+        .filter(([k]) => k !== 'id')
+        .map(([k, v]) => `  ${k}: ${v}`)
+        .join('\n')
+
     return [
         {
             role: 'user',
-            content: `${name}刚刚说：「${newDialogue}」\n\n**${buildModeIndicator('mood')}**`,
+            content: [
+                `## 需要编辑的角色：${name}`,
+                `刚刚的对话：「${newDialogue}」`,
+                '',
+                '当前字段值：',
+                currentFields,
+                '',
+                `**${buildModeIndicator('edit')}**`,
+            ].join('\n'),
         },
     ]
 }

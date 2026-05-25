@@ -3,9 +3,9 @@ import {computed, ref} from 'vue'
 import {useGameStore} from '@/stores/game'
 import {useContentStore} from '@/content/store'
 import {useLogStore} from '@/stores/log'
-import {buildDialogueDynamic, buildMoodDynamic, StaticContext, SYSTEM_PROMPT} from '@/services/prompts'
+import {buildDialogueDynamic, buildEditorDynamic, StaticContext, SYSTEM_PROMPT} from '@/services/prompts'
 import type {ChatMsg, UsageSnapshot} from '@/services/agent'
-import {DialogueRequest, MoodRequest} from '@/services/agent'
+import {DialogueRequest, EditorRequest} from '@/services/agent'
 import type {ContentEntity} from '@/content/types'
 
 export const useDialogueStore = defineStore('dialogue', () =>
@@ -117,23 +117,35 @@ export const useDialogueStore = defineStore('dialogue', () =>
 
             ctx.append({type: 'assistant', text: aiText, name: speakerName})
 
-            const moodDynMsgs = buildMoodDynamic(target!, aiText)
-            const moodMessages: ChatMsg[] = [...messages, ...moodDynMsgs]
+            const editorDynMsgs = buildEditorDynamic(target!, aiText)
+            const editorMessages: ChatMsg[] = [...messages, ...editorDynMsgs]
 
-            const moodResult = await new MoodRequest()
-                .withMessages(moodMessages)
+            const editResult = await new EditorRequest()
+                .withMessages(editorMessages)
                 .execute()
 
-            accumulateUsage(moodResult.usage)
+            accumulateUsage(editResult.usage)
             cumulativeUsage.value.turnCount++
 
-            if (target)
+            if (target && editResult.operations.length > 0)
             {
                 const patch: Record<string, any> = {}
-                if (moodResult.mood) patch.mood = moodResult.mood
-                const currentAffection = (target.frontmatter.affection as number) ?? 0
-                patch.affection = Math.max(0, Math.min(5, currentAffection + moodResult.affectionDelta))
-                await contentStore.updateFrontmatter('characters', target.id, patch)
+                for (const op of editResult.operations)
+                {
+                    if (op.op === 'set')
+                    {
+                        patch[op.field] = op.value
+                    }
+                    else if (op.op === 'adjust')
+                    {
+                        const current = (target.frontmatter[op.field] as number) ?? 0
+                        patch[op.field] = current + op.delta
+                    }
+                }
+                if (Object.keys(patch).length > 0)
+                {
+                    await contentStore.updateFrontmatter('characters', target.id, patch)
+                }
             }
 
             log.info(`${speakerName}: ${aiText.slice(0, 40)}`)

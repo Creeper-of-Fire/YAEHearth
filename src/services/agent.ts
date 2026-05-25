@@ -97,10 +97,18 @@ export class DialogueRequest
 }
 
 /* ------------------------------------------------------------------ */
-/* MoodRequest                                                         */
+/* EditOperation — 通用字段编辑操作                                      */
 /* ------------------------------------------------------------------ */
 
-export class MoodRequest
+export type EditOp =
+    | { op: 'set'; field: string; value: string }
+    | { op: 'adjust'; field: string; delta: number }
+
+/* ------------------------------------------------------------------ */
+/* EditorRequest — 通用内容编辑                                          */
+/* ------------------------------------------------------------------ */
+
+export class EditorRequest
 {
     private _messages: ChatMsg[] = []
 
@@ -110,11 +118,11 @@ export class MoodRequest
         return this
     }
 
-    async execute(): Promise<{ mood: string | null; affectionDelta: number; usage: UsageSnapshot | null }>
+    async execute(): Promise<{ operations: EditOp[]; usage: UsageSnapshot | null }>
     {
         const log = useLogStore()
-        log.info(`分析情绪 (model=${import.meta.env.VITE_MODEL})`)
-        log.debug('情绪提示词:\n' + this._messages.map((m, i) => `[${i}] ${m.role}: ${m.content}`).join('\n'))
+        log.info(`编辑字段 (model=${import.meta.env.VITE_MODEL})`)
+        log.debug('编辑提示词:\n' + this._messages.map((m, i) => `[${i}] ${m.role}: ${m.content}`).join('\n'))
 
         try
         {
@@ -122,53 +130,47 @@ export class MoodRequest
                 model: import.meta.env.VITE_MODEL,
                 messages: this._messages as OpenAI.ChatCompletionMessageParam[],
                 temperature: 0.3,
-                max_tokens: 100,
+                max_tokens: 200,
             })
 
             const raw = stripThinkTags(resp.choices[0]?.message?.content?.trim() ?? '')
             const usage = extractUsage(resp.usage as unknown as Record<string, unknown>)
-            const parsed = this.parseResponse(raw)
-            log.info(`情绪响应: ${raw.slice(0, 60)} (缓存命中: ${usage?.cacheHitTokens ?? '?'}/${usage?.promptTokens ?? '?'})`)
-            return {...parsed, usage}
+            const operations = this.parseResponse(raw)
+            log.info(`编辑响应: ${raw.slice(0, 60)} (${operations.length} ops, 缓存命中: ${usage?.cacheHitTokens ?? '?'}/${usage?.promptTokens ?? '?'})`)
+            return {operations, usage}
         } catch (e)
         {
-            log.warn(`情绪更新失败: ${e}`)
-            return {mood: null, affectionDelta: 0, usage: null}
+            log.warn(`字段编辑失败: ${e}`)
+            return {operations: [], usage: null}
         }
     }
 
-    parseResponse(raw: string): { mood: string | null; affectionDelta: number }
+    parseResponse(raw: string): EditOp[]
     {
+        // 尝试提取 JSON 数组
+        let json = raw
+        const arrStart = raw.indexOf('[')
+        const arrEnd = raw.lastIndexOf(']') + 1
+        if (arrStart >= 0 && arrEnd > arrStart)
+        {
+            json = raw.slice(arrStart, arrEnd)
+        }
+
         try
         {
-            const data = JSON.parse(raw)
-            return {
-                mood: (data.mood as string) ?? null,
-                affectionDelta: Number(data.affection_delta ?? 0),
-            }
+            const data = JSON.parse(json)
+            if (!Array.isArray(data)) return []
+            return data.filter((item: any): item is EditOp =>
+            {
+                if (!item || typeof item !== 'object') return false
+                if (item.op === 'set') return typeof item.field === 'string' && typeof item.value === 'string'
+                if (item.op === 'adjust') return typeof item.field === 'string' && typeof item.delta === 'number'
+                return false
+            })
         } catch
         {
-            // fall through
+            useLogStore().warn(`编辑操作解析失败: ${raw.slice(0, 60)}`)
+            return []
         }
-
-        const start = raw.indexOf('{')
-        const end = raw.lastIndexOf('}') + 1
-        if (start >= 0 && end > start)
-        {
-            try
-            {
-                const data = JSON.parse(raw.slice(start, end))
-                return {
-                    mood: (data.mood as string) ?? null,
-                    affectionDelta: Number(data.affection_delta ?? 0),
-                }
-            } catch
-            {
-                // give up
-            }
-        }
-
-        useLogStore().warn(`情绪解析失败: ${raw.slice(0, 60)}`)
-        return {mood: null, affectionDelta: 0}
     }
 }
