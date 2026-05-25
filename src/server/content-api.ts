@@ -1,10 +1,11 @@
+import {merge} from 'lodash-es'
+
 import type {IncomingMessage, ServerResponse} from 'node:http'
 import {readdirSync, statSync} from 'node:fs'
-import {join} from 'node:path'
+import {join, resolve, relative} from 'node:path'
 import {parseContentFile, typeFromPath, writeContentFile, type ParsedContent} from './parser'
 import {resolveWorkspacePrompt} from './prompt-assembler'
 import type {ContentWatcher} from './file-watcher'
-import {resolve, relative} from 'node:path'
 
 function sendJson(res: ServerResponse, data: any): void
 {
@@ -71,7 +72,7 @@ export function contentApiMiddleware(contentDir: string, watcher: ContentWatcher
     return async (req: IncomingMessage, res: ServerResponse): Promise<void> =>
     {
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`)
-        const pathParts = url.pathname.replace(/^\/__content\/?/, '').split('/').filter(Boolean)
+        const pathParts = url.pathname.replace(/^\/__content\/?/, '').split('/').filter(Boolean).map(decodeURIComponent)
 
         // GET /__content/system_prompt — 组装工作区系统提示词
         if (req.method === 'GET' && pathParts.length === 1 && pathParts[0] === 'system_prompt')
@@ -136,7 +137,7 @@ export function contentApiMiddleware(contentDir: string, watcher: ContentWatcher
             }
 
             const parsed = parseContentFile(filePath)
-            Object.assign(parsed.frontmatter, patch)
+            merge(parsed.frontmatter, patch)
             writeContentFile(filePath, parsed)
 
             // 记录写入时间戳，供 watcher 防抖

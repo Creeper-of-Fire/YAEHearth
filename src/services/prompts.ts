@@ -44,12 +44,20 @@ export const SYSTEM_PROMPT = `你是一个角色扮演引擎，能够以多种�
 
 在字段编辑模式下，你根据对话内容判断角色的哪些 frontmatter 字段需要更新。
 
-规则：
-- 只返回 JSON 数组，不包含任何其他文字
-- 每项格式取决于字段类型：
-  - 字符串字段：{"op": "set", "field": "字段名", "value": "新值"}
-  - 数字字段：{"op": "adjust", "field": "字段名", "delta": 变化量}
-- 只修改确实需要变化的字段`
+### 字段结构
+frontmatter 是嵌套 YAML 结构，按类别分层组织。字段名使用中文。
+通过点号路径定位深层字段（如 "属性.体力" 表示 {"属性": {"体力": ...}}）。
+
+### 操作格式
+只返回 JSON 数组，不包含任何其他文字。每项必须包含 entity 字段指定要编辑的角色 id。格式：
+  - 设置值：{"op": "set", "entity": "角色id", "path": "状态.心情", "value": "愉快"}
+  - 数值增减：{"op": "adjust", "entity": "角色id", "path": "属性.体力", "delta": -5}
+  - 追加元素：{"op": "push", "entity": "角色id", "path": "日志.事件", "value": "触发了一段对话"}
+
+### 创建规律
+- path 按 "类别.子类别.字段名" 的规律组织
+- 遇到尚未存在的路径时，按路径结构自动创建中间节点——数值字段从 0 开始累加，字符串字段用 set 直接写入
+- 只修改确实需要变化的字段，与对话无关的字段不要动`
 
 /* ------------------------------------------------------------------ */
 /* 工作区系统提示词                                                     */
@@ -188,6 +196,26 @@ function resolveForApi(e: ContextEntry): ApiMessage
 
 /* ------------------------------------------------------------------ */
 
+/** 递归展开嵌套 frontmatter 为 YAML 风格的缩进字符串 */
+function formatFrontmatter(obj: Record<string, any>, indent: number = 0): string
+{
+    const pad = '  '.repeat(indent)
+    const lines: string[] = []
+    for (const [k, v] of Object.entries(obj))
+    {
+        if (k === 'id' || k === 'name') continue
+        if (v && typeof v === 'object' && !Array.isArray(v))
+        {
+            lines.push(`${pad}${k}:`)
+            lines.push(formatFrontmatter(v, indent + 1))
+        } else
+        {
+            lines.push(`${pad}${k}: ${v}`)
+        }
+    }
+    return lines.join('\n')
+}
+
 export function buildDialogueDynamic(
     target: ContentEntity,
     allCharacters: ContentEntity[]
@@ -195,44 +223,25 @@ export function buildDialogueDynamic(
 {
     const messages: Array<{ role: 'system' | 'user'; content: string }> = []
 
-    function describe(e: ContentEntity): string
+    const allStates = allCharacters.map(c =>
     {
-        const meta = Object.entries(e.frontmatter)
-            .filter(([k]) => k !== 'id')
-            .map(([k, v]) => `${k}: ${v}`)
-            .join('，')
-        return `${e.frontmatter.name ?? e.id}${meta ? `（${meta}）` : ''}`
-    }
+        const meta = formatFrontmatter(c.frontmatter)
+        return `### ${c.frontmatter.name ?? c.id}\n${meta}`
+    }).join('\n\n')
 
-    const others = allCharacters
-        .filter(c => c.id !== target.id)
-        .map(c => `- ${describe(c)}`)
-        .join('\n')
-
-    if (others)
+    if (allStates)
     {
         messages.push({
             role: 'user',
-            content: `## 在场其他角色当前状态\n${others}`,
+            content: `## 当前状态\n${allStates}`,
         })
     }
 
     const name = target.frontmatter.name ?? target.id
-    const selfMeta = Object.entries(target.frontmatter)
-        .filter(([k]) => k !== 'id' && k !== 'name')
-        .map(([k, v]) => `${k}: ${v}`)
-        .join('\n')
-
-    messages.push(
-        {
-            role: 'user',
-            content: `你正在扮演「${name}」进行对话。`,
-        },
-        {
-            role: 'user',
-            content: `## 当前状态：${name}\n${selfMeta}`,
-        },
-    )
+    messages.push({
+        role: 'user',
+        content: `你正在扮演「${name}」进行对话。`,
+    })
 
     return messages
 }
@@ -243,25 +252,24 @@ export function buildDialogueDynamic(
 /* ------------------------------------------------------------------ */
 
 export function buildEditorDynamic(
-    target: ContentEntity,
+    allCharacters: ContentEntity[],
     newDialogue: string,
 ): Array<{ role: 'system' | 'user'; content: string }>
 {
-    const name = target.frontmatter.name ?? target.id
-    const currentFields = Object.entries(target.frontmatter)
-        .filter(([k]) => k !== 'id')
-        .map(([k, v]) => `  ${k}: ${v}`)
-        .join('\n')
+    const characterList = allCharacters.map(c =>
+    {
+        const name = c.frontmatter.name ?? c.id
+        return `- ${name} (id: ${c.id})`
+    }).join('\n')
 
     return [
         {
             role: 'user',
             content: [
-                `## 需要编辑的角色：${name}`,
-                `刚刚的对话：「${newDialogue}」`,
+                '## 可编辑的角色',
+                characterList,
                 '',
-                '当前字段值：',
-                currentFields,
+                `刚刚的对话：「${newDialogue}」`,
                 '',
                 `**${buildModeIndicator('edit')}**`,
             ].join('\n'),

@@ -1,3 +1,4 @@
+import {merge} from 'lodash-es'
 import type {ContentEntity, ContentEvent, ContentType} from './types'
 
 const API_BASE = '/__content'
@@ -85,10 +86,10 @@ export class ContentService
         const entity = this.cache.get(cacheKey)
         if (!entity) throw new Error(`Entity ${cacheKey} not found`)
 
-        // 乐观更新
+        // 乐观更新（深合并，支持嵌套路径）
         const updated: ContentEntity = {
             ...entity,
-            frontmatter: {...entity.frontmatter, ...patch},
+            frontmatter: merge({}, entity.frontmatter, patch),
         }
         this.cache.set(cacheKey, updated)
 
@@ -137,7 +138,16 @@ export class ContentService
     private async fetch(path: string, init?: RequestInit): Promise<any>
     {
         const res = await fetch(`${API_BASE}${path}`, init)
-        if (!res.ok) throw new Error(`Content API error: ${res.status} ${res.statusText}`)
+        if (!res.ok)
+        {
+            let detail = ''
+            try
+            {
+                const body = await res.json()
+                detail = body.error ? `: ${body.error}` : ''
+            } catch { /* ignore */ }
+            throw new Error(`Content API ${res.status}${detail}`)
+        }
         return res.json()
     }
 }

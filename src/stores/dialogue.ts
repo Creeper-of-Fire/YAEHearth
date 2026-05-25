@@ -109,11 +109,16 @@ export const useDialogueStore = defineStore('dialogue', () =>
         ctx.append({type: 'player', text, name: '玩家'})
         log.info(`玩家: ${text.slice(0, 30)}`)
 
+        // 已加载静态人物卡的角色实体——"谁在场"的唯一真相来源
+        const loadedEntities = ctx.loadedCardIds
+            .map(id => contentStore.getEntity('characters', id))
+            .filter((e): e is ContentEntity => e !== undefined)
+
         try
         {
             ctx.commit()
             const staticMsgs = ctx.build()
-            const dynamicMsgs = buildDialogueDynamic(target!, gameStore.characters)
+            const dynamicMsgs = buildDialogueDynamic(target!, loadedEntities)
             const messages: ChatMsg[] = [...staticMsgs, ...dynamicMsgs]
 
             const dialogueResult = await new DialogueRequest()
@@ -130,7 +135,7 @@ export const useDialogueStore = defineStore('dialogue', () =>
             // 编辑操作独立 try-catch，失败不影响对话显示
             try
             {
-                const editorDynMsgs = buildEditorDynamic(target!, aiText)
+                const editorDynMsgs = buildEditorDynamic(loadedEntities, aiText)
                 const editorMessages: ChatMsg[] = [...messages, ...editorDynMsgs]
 
                 const editResult = await new EditorRequest()
@@ -140,25 +145,47 @@ export const useDialogueStore = defineStore('dialogue', () =>
                 accumulateUsage(editResult.usage)
                 cumulativeUsage.value.turnCount++
 
-                if (target && editResult.operations.length > 0)
+                // 按 entity 分组应用
+                const byEntity = new Map<string, Record<string, any>>()
+                for (const op of editResult.operations)
                 {
-                    const patch: Record<string, any> = {}
-                    for (const op of editResult.operations)
+                    const entity = contentStore.getEntity('characters', op.entity)
+                    if (!entity)
                     {
-                        if (op.op === 'set')
-                        {
-                            patch[op.path] = op.value
-                        }
-                        else if (op.op === 'adjust')
-                        {
-                            const current = (target.frontmatter[op.path] as number) ?? 0
-                            patch[op.path] = current + op.delta
-                        }
+                        log.warn(`编辑操作跳过: 找不到角色 ${op.entity}`)
+                        continue
                     }
+
+                    let patch = byEntity.get(op.entity)
+                    if (!patch)
+                    {
+                        patch = {}
+                        byEntity.set(op.entity, patch)
+                    }
+
+                    if (op.op === 'set')
+                    {
+                        patch[op.path] = op.value
+                    }
+                    else if (op.op === 'adjust')
+                    {
+                        const current = (entity.frontmatter[op.path] as number) ?? 0
+                        patch[op.path] = current + op.delta
+                    }
+                }
+
+                for (const [entityId, patch] of byEntity)
+                {
                     if (Object.keys(patch).length > 0)
                     {
-                        await contentStore.updateFrontmatter('characters', target.id, patch)
-                        log.info(`字段编辑已应用: ${Object.keys(patch).join(', ')}`)
+                        try
+                        {
+                            await contentStore.updateFrontmatter('characters', entityId, patch)
+                            log.info(`字段编辑已应用: ${entityId} → ${Object.keys(patch).join(', ')}`)
+                        } catch (e)
+                        {
+                            log.warn(`字段编辑失败 (${entityId}, 字段: ${Object.keys(patch).join(', ')}): ${e}`)
+                        }
                     }
                 }
             } catch (e)

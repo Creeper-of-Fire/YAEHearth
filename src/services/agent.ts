@@ -100,8 +100,9 @@ export class DialogueRequest
 /* ------------------------------------------------------------------ */
 
 export type EditOp =
-    | { op: 'set'; field: string; value: string }
-    | { op: 'adjust'; field: string; delta: number }
+    | { op: 'set'; entity: string; path: string; value: any }
+    | { op: 'adjust'; entity: string; path: string; delta: number }
+    | { op: 'push'; entity: string; path: string; value: any }
 
 /* ------------------------------------------------------------------ */
 /* EditorRequest — 通用内容编辑                                          */
@@ -162,8 +163,10 @@ export class EditorRequest
             return data.filter((item: any): item is EditOp =>
             {
                 if (!item || typeof item !== 'object') return false
-                if (item.op === 'set') return typeof item.field === 'string' && typeof item.value === 'string'
-                if (item.op === 'adjust') return typeof item.field === 'string' && typeof item.delta === 'number'
+                if (!item.op || typeof item.path !== 'string' || typeof item.entity !== 'string') return false
+                if (item.op === 'set') return 'value' in item
+                if (item.op === 'adjust') return typeof item.delta === 'number'
+                if (item.op === 'push') return 'value' in item
                 return false
             })
         } catch
