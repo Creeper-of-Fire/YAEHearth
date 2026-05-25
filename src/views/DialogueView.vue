@@ -4,6 +4,7 @@ import { useDialogueStore } from '@/stores/dialogue'
 import { useGameStore } from '@/stores/game'
 import { usePanelParams } from '@/viewer/usePanelParams'
 import { usePanelStore } from '@/stores/panel'
+import MarkdownView from '@/components/MarkdownView.vue'
 
 const { params, navigate } = usePanelParams()
 const panelStore = usePanelStore()
@@ -94,10 +95,10 @@ function endConversation() {
         :class="`msg-${msg.type}`"
       >
         <template v-if="msg.type === 'scene'">
-          <div class="content-block">{{ msg.text }}</div>
+          <MarkdownView :source="msg.text" class="content-block"/>
         </template>
         <template v-else-if="msg.type === 'char-card'">
-          <div class="content-block">{{ msg.text }}</div>
+          <MarkdownView :source="msg.text" class="content-block"/>
         </template>
         <template v-else-if="msg.type === 'player'">
           <span class="speaker-player">你:</span> {{ msg.text }}
@@ -171,6 +172,7 @@ function endConversation() {
 .message {
   color: #cccccc;
   line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .msg-scene {

@@ -1,11 +1,18 @@
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useGameStore} from '@/stores/game'
 import {usePanelParams} from '@/viewer/usePanelParams'
 import {usePanelStore} from '@/stores/panel'
+import MarkdownView from '@/components/MarkdownView.vue'
 
 const store = useGameStore()
 const {navigate} = usePanelParams()
 const panelStore = usePanelStore()
+
+const sceneFields = computed(() =>
+    Object.entries(store.activeScene?.frontmatter ?? {})
+        .filter(([k]) => k !== 'id' && k !== 'characters'),
+)
 
 function startDialogue(charId: string)
 {
@@ -17,9 +24,13 @@ function startDialogue(charId: string)
 <template>
   <div class="scene-view">
     <div class="scene-header">
-      <div class="scene-location">{{ store.activeScene?.frontmatter.location ?? '未知地点' }}</div>
-      <div class="scene-time">{{ store.activeScene?.frontmatter.timeOfDay ?? '' }}</div>
-      <div class="scene-atmosphere">{{ store.activeScene?.body ?? '' }}</div>
+      <div
+          v-for="[key, val] in sceneFields"
+          :key="key"
+          class="scene-field"
+          :class="`scene-${key}`"
+      >{{ val }}</div>
+      <MarkdownView :source="store.activeScene?.body ?? ''" class="scene-body"/>
     </div>
 
     <div class="scene-interactions">
@@ -31,8 +42,15 @@ function startDialogue(charId: string)
             class="char-card"
         >
           <div class="char-card-name">{{ char.frontmatter.name ?? char.id }}</div>
-          <div class="char-card-role">{{ char.frontmatter.role ?? '' }}</div>
-          <div class="char-card-mood">{{ char.frontmatter.mood ?? '未知' }}</div>
+          <div class="char-card-fields">
+            <div
+                v-for="[key, val] in Object.entries(char.frontmatter).filter(([k]) => k !== 'id' && k !== 'name')"
+                :key="key"
+                class="char-card-field"
+            >
+              <span class="field-label">{{ key }}:</span> {{ val }}
+            </div>
+          </div>
           <n-button size="small" type="primary" @click="startDialogue(char.id)">
             开始对话
           </n-button>
@@ -54,24 +72,29 @@ function startDialogue(charId: string)
   border-bottom: 1px solid #434347;
 }
 
+.scene-field {
+  color: #dddddd;
+}
+
 .scene-location {
   font-size: 22px;
   font-weight: bold;
-  color: #dddddd;
   margin-bottom: 4px;
 }
 
-.scene-time {
+.scene-timeOfDay {
   font-size: 13px;
   color: #999999;
   margin-bottom: 8px;
 }
 
-.scene-atmosphere {
+.scene-body {
   font-size: 14px;
   color: #888888;
   font-style: italic;
   line-height: 1.5;
+  margin-top: 6px;
+  white-space: pre-wrap;
 }
 
 .scene-interactions {
@@ -108,18 +131,20 @@ function startDialogue(charId: string)
   font-size: 16px;
   font-weight: bold;
   color: #dddddd;
-  margin-bottom: 2px;
-}
-
-.char-card-role {
-  font-size: 12px;
-  color: #999999;
   margin-bottom: 4px;
 }
 
-.char-card-mood {
-  font-size: 12px;
-  color: #777777;
+.char-card-fields {
   margin-bottom: 8px;
+}
+
+.char-card-field {
+  font-size: 12px;
+  color: #999999;
+  line-height: 1.6;
+}
+
+.field-label {
+  color: #777777;
 }
 </style>

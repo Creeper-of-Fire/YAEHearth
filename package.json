@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "marked": "^18.0.4",
     "naive-ui": "^2.44.1",
     "openai": "^6.36.0",
     "pinia": "^3.0.4",

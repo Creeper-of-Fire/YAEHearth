@@ -1,35 +1,32 @@
 <script lang="ts" setup>
+import {computed} from 'vue'
 import type {ContentEntity} from '@/content/types'
+import MarkdownView from '@/components/MarkdownView.vue'
 
-defineProps<{ entity: ContentEntity }>()
+const props = defineProps<{ entity: ContentEntity }>()
+
+/** 排除 id/name 后的展示字段 */
+const displayFields = computed(() =>
+    Object.entries(props.entity.frontmatter).filter(([k]) => k !== 'id' && k !== 'name'),
+)
 </script>
 
 <template>
   <div class="attr-panel">
     <div class="attr-name">{{ entity.frontmatter.name ?? entity.id }}</div>
-    <div class="attr-role">{{ entity.frontmatter.role ?? '' }}</div>
 
-    <div class="spacer"/>
-
-    <div class="attr-label">描述</div>
-    <div class="attr-text">{{ entity.body }}</div>
-
-    <div class="spacer"/>
-
-    <div class="attr-label">好感度</div>
-    <div class="hearts">
-      <span
-          v-for="i in 5"
-          :key="i"
-          :class="i <= (entity.frontmatter.affection ?? 0) ? 'heart-filled' : 'heart-empty'"
-          class="heart"
-      >{{ i <= (entity.frontmatter.affection ?? 0) ? '❤' : '♡' }}</span>
+    <div
+        v-for="[key, val] in displayFields"
+        :key="key"
+        class="attr-row"
+    >
+      <span class="attr-label">{{ key }}</span>
+      <span class="attr-value">{{ val }}</span>
     </div>
 
     <div class="spacer"/>
-
-    <div class="attr-label">心情</div>
-    <div class="attr-text">{{ entity.frontmatter.mood ?? '未知' }}</div>
+    <div class="attr-section-label">描述</div>
+    <MarkdownView :source="entity.body" class="attr-body"/>
   </div>
 </template>
 
@@ -43,39 +40,39 @@ defineProps<{ entity: ContentEntity }>()
 .attr-name {
   font-size: 20px;
   font-weight: bold;
-  margin-bottom: 4px;
+  margin-bottom: 12px;
 }
 
-.attr-role {
-  color: #999999;
-  font-size: 14px;
+.attr-row {
+  margin-bottom: 8px;
+}
+
+.attr-label {
+  display: block;
+  color: #777777;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.attr-value {
+  color: #cccccc;
 }
 
 .spacer {
   height: 16px;
 }
 
-.attr-label {
+.attr-section-label {
   color: #777777;
   font-size: 12px;
   margin-bottom: 4px;
 }
 
-.attr-text {
+.attr-body {
   color: #cccccc;
   line-height: 1.6;
+  font-size: 13px;
+  white-space: pre-wrap;
 }
 
-.hearts {
-  font-size: 18px;
-  letter-spacing: 2px;
-}
-
-.heart-filled {
-  color: #cc4444;
-}
-
-.heart-empty {
-  color: #444444;
-}
 </style>
