@@ -100,6 +100,7 @@ export const useDialogueStore = defineStore('dialogue', () =>
     {
         if (busy.value || !targetCharacterId.value) return
         busy.value = true
+        ensureCharacterCard('player')
         ensureCharacterCard(targetCharacterId.value)
         const log = useLogStore()
         const target = findTarget(targetCharacterId.value)
@@ -120,46 +121,53 @@ export const useDialogueStore = defineStore('dialogue', () =>
                 .execute()
 
             accumulateUsage(dialogueResult.usage)
-            let aiText = dialogueResult.text
+            const aiText = dialogueResult.text
 
             ctx.append({type: 'assistant', text: aiText, name: speakerName})
-
-            const editorDynMsgs = buildEditorDynamic(target!, aiText)
-            const editorMessages: ChatMsg[] = [...messages, ...editorDynMsgs]
-
-            const editResult = await new EditorRequest()
-                .withMessages(editorMessages)
-                .execute()
-
-            accumulateUsage(editResult.usage)
-            cumulativeUsage.value.turnCount++
-
-            if (target && editResult.operations.length > 0)
-            {
-                const patch: Record<string, any> = {}
-                for (const op of editResult.operations)
-                {
-                    if (op.op === 'set')
-                    {
-                        patch[op.field] = op.value
-                    }
-                    else if (op.op === 'adjust')
-                    {
-                        const current = (target.frontmatter[op.field] as number) ?? 0
-                        patch[op.field] = current + op.delta
-                    }
-                }
-                if (Object.keys(patch).length > 0)
-                {
-                    await contentStore.updateFrontmatter('characters', target.id, patch)
-                }
-            }
-
             log.info(`${speakerName}: ${aiText.slice(0, 40)}`)
             ctx.commit()
+
+            // 编辑操作独立 try-catch，失败不影响对话显示
+            try
+            {
+                const editorDynMsgs = buildEditorDynamic(target!, aiText)
+                const editorMessages: ChatMsg[] = [...messages, ...editorDynMsgs]
+
+                const editResult = await new EditorRequest()
+                    .withMessages(editorMessages)
+                    .execute()
+
+                accumulateUsage(editResult.usage)
+                cumulativeUsage.value.turnCount++
+
+                if (target && editResult.operations.length > 0)
+                {
+                    const patch: Record<string, any> = {}
+                    for (const op of editResult.operations)
+                    {
+                        if (op.op === 'set')
+                        {
+                            patch[op.path] = op.value
+                        }
+                        else if (op.op === 'adjust')
+                        {
+                            const current = (target.frontmatter[op.path] as number) ?? 0
+                            patch[op.path] = current + op.delta
+                        }
+                    }
+                    if (Object.keys(patch).length > 0)
+                    {
+                        await contentStore.updateFrontmatter('characters', target.id, patch)
+                        log.info(`字段编辑已应用: ${Object.keys(patch).join(', ')}`)
+                    }
+                }
+            } catch (e)
+            {
+                log.warn(`字段编辑失败: ${e}`)
+            }
         } catch (e)
         {
-            log.error(`Agent 调用失败: ${e}`)
+            log.error(`对话生成失败: ${e}`)
             ctx.append({type: 'assistant', text: '（沉默）', name: speakerName})
             ctx.commit()
         } finally

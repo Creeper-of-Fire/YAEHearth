@@ -98,6 +98,7 @@ function endConversation() {
           <MarkdownView :source="msg.text" class="content-block"/>
         </template>
         <template v-else-if="msg.type === 'char-card'">
+          <div class="char-card-label">{{ msg.name }}</div>
           <MarkdownView :source="msg.text" class="content-block"/>
         </template>
         <template v-else-if="msg.type === 'player'">
@@ -183,14 +184,22 @@ function endConversation() {
 }
 
 .msg-char-card {
-  align-self: center;
+  align-self: stretch;
   background: #222226;
   border: 1px solid #434347;
   border-radius: 6px;
   padding: 8px 12px;
   font-size: 13px;
   color: #aaaaaa;
-  max-width: 80%;
+}
+
+.char-card-label {
+  font-size: 14px;
+  font-weight: bold;
+  color: #dddddd;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #434347;
 }
 
 .msg-player {
