@@ -8,6 +8,31 @@ import type {ChatMsg, UsageSnapshot} from '@/services/agent'
 import {DialogueRequest, EditorRequest} from '@/services/agent'
 import type {ContentEntity} from '@/content/types'
 
+function getNestedValue(obj: Record<string, any>, path: string): any
+{
+    const keys = path.split('.')
+    let cur: any = obj
+    for (const k of keys)
+    {
+        if (cur == null || typeof cur !== 'object') return undefined
+        cur = cur[k]
+    }
+    return cur
+}
+
+function setNestedValue(obj: Record<string, any>, path: string, value: any): void
+{
+    const keys = path.split('.')
+    let cur: any = obj
+    for (let i = 0; i < keys.length - 1; i++)
+    {
+        const k = keys[i]
+        if (!(k in cur) || typeof cur[k] !== 'object') cur[k] = {}
+        cur = cur[k]
+    }
+    cur[keys[keys.length - 1]] = value
+}
+
 export const useDialogueStore = defineStore('dialogue', () =>
 {
     const gameStore = useGameStore()
@@ -163,14 +188,20 @@ export const useDialogueStore = defineStore('dialogue', () =>
                         byEntity.set(op.entity, patch)
                     }
 
-                    if (op.op === 'set')
+                    if (op.op === 'set-string')
                     {
-                        patch[op.path] = op.value
+                        setNestedValue(patch, op.path, op.value)
                     }
-                    else if (op.op === 'adjust')
+                    else if (op.op === 'adjust-number')
                     {
-                        const current = (entity.frontmatter[op.path] as number) ?? 0
-                        patch[op.path] = current + op.delta
+                        const current = getNestedValue(entity.frontmatter, op.path) ?? 0
+                        setNestedValue(patch, op.path, current + op.delta)
+                    }
+                    else if (op.op === 'push-to-list')
+                    {
+                        const list = [...(getNestedValue(entity.frontmatter, op.path) ?? [])]
+                        list.push(op.value)
+                        setNestedValue(patch, op.path, list)
                     }
                 }
 

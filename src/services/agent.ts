@@ -99,9 +99,9 @@ export class DialogueRequest
 /* ------------------------------------------------------------------ */
 
 export type EditOp =
-    | { op: 'set'; entity: string; path: string; value: any }
-    | { op: 'adjust'; entity: string; path: string; delta: number }
-    | { op: 'push'; entity: string; path: string; value: any }
+    | { op: 'set-string'; entity: string; path: string; value: any }
+    | { op: 'adjust-number'; entity: string; path: string; delta: number }
+    | { op: 'push-to-list'; entity: string; path: string; value: any }
 
 /* ------------------------------------------------------------------ */
 /* EditorRequest — 通用内容编辑                                          */
@@ -162,9 +162,9 @@ export class EditorRequest
             {
                 if (!item || typeof item !== 'object') return false
                 if (!item.op || typeof item.path !== 'string' || typeof item.entity !== 'string') return false
-                if (item.op === 'set') return 'value' in item
-                if (item.op === 'adjust') return typeof item.delta === 'number'
-                if (item.op === 'push') return 'value' in item
+                if (item.op === 'set-string') return 'value' in item
+                if (item.op === 'adjust-number') return typeof item.delta === 'number'
+                if (item.op === 'push-to-list') return 'value' in item
                 return false
             })
         } catch
