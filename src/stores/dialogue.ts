@@ -3,10 +3,18 @@ import {computed, ref} from 'vue'
 import {useGameStore} from '@/stores/game'
 import {useContentStore} from '@/content/store'
 import {useLogStore} from '@/stores/log'
-import {buildDialogueDynamic, buildEditorDynamic, fetchWorkspacePrompt, StaticContext, SYSTEM_PROMPT} from '@/services/prompts'
+import {buildDialogueDynamic, buildEditorDynamic, fetchWorkspacePrompt, StaticContext, SYSTEM_PROMPT, type PersistRecord} from '@/services/prompts'
 import type {ChatMsg, UsageSnapshot} from '@/services/agent'
 import {DialogueRequest, EditorRequest} from '@/services/agent'
 import type {ContentEntity} from '@/content/types'
+
+function makeSessionFile(sceneId: string, charId: string): string
+{
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+    return `${sceneId}_${charId}_${stamp}.jsonl`
+}
 
 function getNestedValue(obj: Record<string, any>, path: string): any
 {
@@ -40,6 +48,17 @@ export const useDialogueStore = defineStore('dialogue', () =>
     const targetCharacterId = ref<string | null>(null)
     const busy = ref(false)
     const ctx = new StaticContext()
+    const sessionFile = ref<string | null>(null)
+
+    ctx.setPersister((record: PersistRecord) =>
+    {
+        if (!sessionFile.value) return
+        fetch('/__dialogues/append', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({file: sessionFile.value, record}),
+        }).catch(() => {})
+    })
 
     const displayMessages = computed(() => ctx.displayMessages.value)
 
@@ -100,6 +119,10 @@ export const useDialogueStore = defineStore('dialogue', () =>
         targetCharacterId.value = charId
         ctx.reset()
         resetUsage()
+
+        const sceneId = gameStore.activeSceneId
+        sessionFile.value = makeSessionFile(sceneId, charId)
+
         ctx.append({type: 'system', text: SYSTEM_PROMPT})
 
         const workspacePrompt = await fetchWorkspacePrompt()
@@ -237,6 +260,7 @@ export const useDialogueStore = defineStore('dialogue', () =>
     function endConversation()
     {
         targetCharacterId.value = null
+        sessionFile.value = null
         ctx.reset()
         resetUsage()
         useLogStore().info('对话已结束')

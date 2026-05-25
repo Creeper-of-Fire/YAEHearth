@@ -9,7 +9,10 @@ export default defineConfig({
   plugins: [
     vue(),
     Components({ resolvers: [NaiveUiResolver()] }),
-    contentPlugin(fileURLToPath(new URL('./content', import.meta.url))),
+    contentPlugin(
+      fileURLToPath(new URL('./content', import.meta.url)),
+      fileURLToPath(new URL('./data/dialogues', import.meta.url)),
+    ),
   ],
   resolve: {
     alias: {

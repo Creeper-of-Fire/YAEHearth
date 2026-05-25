@@ -104,7 +104,33 @@ export interface DisplayMessage
     name?: string
 }
 
+export interface PersistRecord
+{
+    ts: string
+    type: ContextEntry['type']
+    text: string
+    name?: string
+    charId?: string
+}
+
 type ApiMessage = { role: 'system' | 'user' | 'assistant'; content: string; name?: string }
+
+function resolveToText(e: ContextEntry): string
+{
+    switch (e.type)
+    {
+        case 'system':
+            return e.text
+        case 'scene':
+            return e.view.value
+        case 'char-card':
+            return e.view.value
+        case 'player':
+            return e.text
+        case 'assistant':
+            return e.text
+    }
+}
 
 export class StaticContext
 {
@@ -129,6 +155,12 @@ export class StaticContext
             }),
     )
     private committedCount = 0
+    private persister: ((record: PersistRecord) => void) | null = null
+
+    setPersister(fn: (record: PersistRecord) => void): void
+    {
+        this.persister = fn
+    }
 
     get loadedCardIds(): string[]
     {
@@ -141,6 +173,17 @@ export class StaticContext
     {
         this.entries.value.push(entry)
         triggerRef(this.entries)
+        if (this.persister)
+        {
+            const record: PersistRecord = {
+                ts: new Date().toISOString(),
+                type: entry.type,
+                text: resolveToText(entry),
+            }
+            if (entry.type === 'char-card') record.charId = entry.charId, record.name = entry.name.value
+            else if (entry.type === 'player' || entry.type === 'assistant') record.name = entry.name
+            this.persister(record)
+        }
     }
 
     commit(): void
