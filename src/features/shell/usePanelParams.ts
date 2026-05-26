@@ -1,18 +1,18 @@
-import type {ComputedRef} from 'vue'
+import type {ComputedRef, InjectionKey} from 'vue'
 import {computed, inject} from 'vue'
 import {usePanelStore} from './panel-store'
 
+export const panelNameKey: InjectionKey<ComputedRef<'left' | 'center' | 'right'>> = Symbol('panel-name')
+
 export function usePanelParams()
 {
-    const panelNameRef = inject<ComputedRef<'left' | 'center' | 'right'>>('panel-name')
+    const panelName = inject(panelNameKey)
     const store = usePanelStore()
 
-    if (!panelNameRef)
+    if (!panelName)
     {
         throw new Error('usePanelParams() 必须在 <Viewer> 组件内调用')
     }
-
-    const panelName = computed(() => panelNameRef.value)
 
     const params = computed(() =>
     {

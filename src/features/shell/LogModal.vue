@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, shallowRef} from 'vue'
 import {useLogStore} from './log-store'
 
 const log = useLogStore()
-const show = ref(false)
+const show = shallowRef(false)
 
-const recentLogs = computed(() => log.entries.value.slice(-500))
+const recentLogs = computed(() => log.entries.slice(-500))
 </script>
 
 <template>

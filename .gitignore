@@ -24,5 +24,7 @@ components.d.ts
 # 编辑器 / 工具
 .idea/
 .claude/
+.agents/
+skills-lock.json
 _old_py/
 /repopack-output.txt

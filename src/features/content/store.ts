@@ -1,5 +1,5 @@
 import {defineStore} from 'pinia'
-import {computed, reactive, ref} from 'vue'
+import {computed, reactive, shallowRef} from 'vue'
 import type {ContentType, ContentEntity} from '@/shared/types'
 import {ContentService} from './service'
 
@@ -8,7 +8,7 @@ export const useContentStore = defineStore('content', () =>
     const service = new ContentService()
 
     const entities = reactive<Map<string, ContentEntity>>(new Map())
-    const ready = ref(false)
+    const ready = shallowRef(false)
 
     /** 从 service 缓存同步到响应式 map */
     function fullSync(): void

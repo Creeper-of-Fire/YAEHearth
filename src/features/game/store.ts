@@ -1,5 +1,5 @@
 import {defineStore} from 'pinia'
-import {computed, ref} from 'vue'
+import {computed, shallowRef} from 'vue'
 import {useContentStore} from '@/features/content/store'
 import {useLogStore} from '@/features/shell/log-store'
 import type {ContentEntity} from '@/shared/types'
@@ -9,7 +9,7 @@ export const useGameStore = defineStore('game', () =>
     const contentStore = useContentStore()
     const log = useLogStore()
 
-    const activeSceneId = ref('tavern-night')
+    const activeSceneId = shallowRef('tavern-night')
 
     const activeScene = computed<ContentEntity | undefined>(() =>
         contentStore.getEntity('scenes', activeSceneId.value),

@@ -4,10 +4,10 @@ import {darkTheme, NSpin} from 'naive-ui'
 import Viewer from '@/features/shell/Viewer.vue'
 import LogModal from '@/features/shell/LogModal.vue'
 import {useContentStore} from '@/features/content/store'
-import {onMounted, ref} from 'vue'
+import {onMounted, shallowRef} from 'vue'
 
 const contentStore = useContentStore()
-const loading = ref(true)
+const loading = shallowRef(true)
 
 onMounted(async () =>
 {

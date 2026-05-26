@@ -1,5 +1,5 @@
 import {defineStore} from 'pinia'
-import {reactive, ref} from 'vue'
+import {reactive, shallowRef} from 'vue'
 
 export interface PanelState
 {
@@ -11,7 +11,7 @@ export const usePanelStore = defineStore('panel', () =>
 {
     const left = reactive<PanelState>({view: 'player', params: {}})
     const center = reactive<PanelState>({view: 'scene', params: {}})
-    const centerOverlay = ref<PanelState | null>(null)
+    const centerOverlay = shallowRef<PanelState | null>(null)
     const right = reactive<PanelState>({view: 'char-list', params: {}})
 
     function navigate(panel: 'left' | 'center' | 'right', view: string, extraParams?: Record<string, string>)

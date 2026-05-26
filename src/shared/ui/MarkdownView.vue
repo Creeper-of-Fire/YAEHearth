@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {marked} from 'marked'
+import DOMPurify from 'dompurify'
 
 const props = defineProps<{ source: string }>()
 
-const html = computed(() => marked.parse(props.source ?? '', {async: false}) as string)
+const html = computed(() => DOMPurify.sanitize(marked.parse(props.source ?? '', {async: false}) as string))
 </script>
 
 <template>

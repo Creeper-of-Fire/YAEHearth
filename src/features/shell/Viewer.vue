@@ -2,6 +2,7 @@
 import {computed, provide} from 'vue'
 import {usePanelStore} from './panel-store'
 import {viewRegistry} from './registry'
+import {panelNameKey} from './usePanelParams'
 
 const props = defineProps<{ panel: 'left' | 'center' | 'right' }>()
 const store = usePanelStore()
@@ -16,7 +17,7 @@ const activeState = computed(() =>
 
 const currentComponent = computed(() => viewRegistry[activeState.value.view])
 
-provide('panel-name', computed(() => props.panel))
+provide(panelNameKey, computed(() => props.panel))
 </script>
 
 <template>
