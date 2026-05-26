@@ -13,7 +13,15 @@ export function usePanelParams()
     }
 
     const panelName = computed(() => panelNameRef.value)
-    const params = computed(() => store[panelName.value].params as Readonly<Record<string, string>>)
+
+    const params = computed(() =>
+    {
+        if (panelName.value === 'center' && store.centerOverlay)
+        {
+            return store.centerOverlay.params as Readonly<Record<string, string>>
+        }
+        return store[panelName.value].params as Readonly<Record<string, string>>
+    })
 
     function navigate(view: string, extraParams?: Record<string, string>)
     {

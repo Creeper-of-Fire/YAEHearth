@@ -80,22 +80,17 @@ html, body, #app {
 .panel-left {
   background: #19191a;
   border-right: 1px solid #434347;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  overflow-y: auto;
 }
 
 .panel-center {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  overflow-y: auto;
 }
 
 .panel-right {
   background: #19191a;
   border-left: 1px solid #434347;
   overflow-y: auto;
-  height: 100%;
 }
 
 .loading-screen {

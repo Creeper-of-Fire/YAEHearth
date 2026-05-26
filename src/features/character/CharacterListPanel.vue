@@ -15,7 +15,6 @@ const menuOptions = computed(() =>
 
 function onSelect(key: string)
 {
-  panelStore.navigate('center', 'char-detail', {characterId: key})
   panelStore.navigate('right', 'char-attrs', {characterId: key})
 }
 </script>
@@ -33,9 +32,6 @@ function onSelect(key: string)
 <style scoped>
 .character-list-panel {
   padding: 16px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
 .panel-title {

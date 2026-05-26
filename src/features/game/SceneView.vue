@@ -4,6 +4,7 @@ import {useGameStore} from '@/features/game/store'
 import {usePanelParams} from '@/features/shell/usePanelParams'
 import {usePanelStore} from '@/features/shell/panel-store'
 import MarkdownView from '@/shared/ui/MarkdownView.vue'
+import FieldTree from '@/shared/ui/FieldTree.vue'
 
 const store = useGameStore()
 const {navigate} = usePanelParams()
@@ -13,6 +14,9 @@ const sceneFields = computed(() =>
     Object.entries(store.activeScene?.frontmatter ?? {})
         .filter(([k]) => k !== 'id' && k !== 'characters'),
 )
+
+const charDisplayFields = (char: typeof store.characters[number]) =>
+    Object.entries(char.frontmatter).filter(([k]) => k !== 'id' && k !== 'name')
 
 function startDialogue(charId: string)
 {
@@ -42,15 +46,7 @@ function startDialogue(charId: string)
             class="char-card"
         >
           <div class="char-card-name">{{ char.frontmatter.name ?? char.id }}</div>
-          <div class="char-card-fields">
-            <div
-                v-for="[key, val] in Object.entries(char.frontmatter).filter(([k]) => k !== 'id' && k !== 'name')"
-                :key="key"
-                class="char-card-field"
-            >
-              <span class="field-label">{{ key }}:</span> {{ val }}
-            </div>
-          </div>
+          <FieldTree :fields="charDisplayFields(char)" class="char-card-fields"/>
           <n-button size="small" type="primary" @click="startDialogue(char.id)">
             开始对话
           </n-button>
@@ -62,7 +58,6 @@ function startDialogue(charId: string)
 
 <style scoped>
 .scene-view {
-  height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -98,9 +93,7 @@ function startDialogue(charId: string)
 }
 
 .scene-interactions {
-  flex: 1;
   padding: 16px 24px;
-  overflow-y: auto;
 }
 
 .interactions-title {
@@ -136,15 +129,6 @@ function startDialogue(charId: string)
 
 .char-card-fields {
   margin-bottom: 8px;
-}
-
-.char-card-field {
   font-size: 12px;
-  color: #999999;
-  line-height: 1.6;
-}
-
-.field-label {
-  color: #777777;
 }
 </style>

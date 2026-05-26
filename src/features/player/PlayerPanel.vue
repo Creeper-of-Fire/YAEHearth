@@ -8,7 +8,8 @@ const panelStore = usePanelStore()
 
 function goToDetail()
 {
-  panelStore.navigate('center', 'player-detail')
+  if (!store.player) return
+  panelStore.showOverlay('char-detail', {entityId: store.player.id})
 }
 </script>
 
@@ -23,8 +24,6 @@ function goToDetail()
 .player-panel {
   padding: 16px;
   cursor: pointer;
-  height: 100%;
-  overflow-y: auto;
   transition: background 0.15s;
 }
 

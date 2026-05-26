@@ -7,7 +7,14 @@ const props = defineProps<{ panel: 'left' | 'center' | 'right' }>()
 const store = usePanelStore()
 
 const panelState = computed(() => store[props.panel])
-const currentComponent = computed(() => viewRegistry[panelState.value.view])
+
+const activeState = computed(() =>
+    props.panel === 'center' && store.centerOverlay
+        ? store.centerOverlay
+        : panelState.value,
+)
+
+const currentComponent = computed(() => viewRegistry[activeState.value.view])
 
 provide('panel-name', computed(() => props.panel))
 </script>
@@ -15,6 +22,6 @@ provide('panel-name', computed(() => props.panel))
 <template>
   <component
       :is="currentComponent"
-      :key="`${panelState.view}:${panelState.params.characterId ?? ''}`"
+      :key="`${activeState.view}:${activeState.params.entityId ?? ''}`"
   />
 </template>
