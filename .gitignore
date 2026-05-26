@@ -1,12 +1,28 @@
+# 依赖
 node_modules/
-/content/
+
+# 构建产物
 dist/
 coverage/
+
+# 运行时数据（目录结构通过 .gitkeep 保留）
+/content/**/*.md
+/content/**/*.chr
+/content/**/*.scn
+/content/**/*.itm
+/data/**/*.jsonl
+/data/**/*.json
+
+# 环境与敏感文件
 .env
-*.log
-_old_py/
 *.local
-/repopack-output.txt
-.claude/
+*.log
+
+# 自动生成
+components.d.ts
+
+# 编辑器 / 工具
 .idea/
-*.d.ts
+.claude/
+_old_py/
+/repopack-output.txt
