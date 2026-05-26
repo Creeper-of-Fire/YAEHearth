@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import type {GlobalThemeOverrides} from 'naive-ui'
 import {darkTheme, NSpin} from 'naive-ui'
-import Viewer from '@/viewer/Viewer.vue'
-import LogModal from './components/LogModal.vue'
-import {useContentStore} from '@/content/store'
+import Viewer from '@/features/shell/Viewer.vue'
+import LogModal from '@/features/shell/LogModal.vue'
+import {useContentStore} from '@/features/content/store'
 import {onMounted, ref} from 'vue'
 
 const contentStore = useContentStore()
